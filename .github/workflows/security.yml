@@ -41,7 +41,7 @@ jobs:
           build-mode: manual
 
       - name: Configurar Gradle
-        uses: gradle/actions/setup-gradle@v4
+        uses: gradle/actions/setup-gradle@v6
 
       - name: Compilar para CodeQL
         run: ./gradlew assembleDebug
@@ -66,7 +66,7 @@ jobs:
           java-version: "21"
 
       - name: Configurar Gradle
-        uses: gradle/actions/setup-gradle@v4
+        uses: gradle/actions/setup-gradle@v6
 
       - name: Analizar CVEs de dependencias
         env:
