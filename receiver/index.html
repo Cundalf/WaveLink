@@ -1,0 +1,435 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>WaveLink</title>
+  <!-- Receiver framework oficial de Google Cast (CAF v3) -->
+  <script src="https://www.gstatic.com/cast/sdk/libs/caf_receiver/v3/cast_receiver_framework.js"></script>
+  <style>
+    :root {
+      --bg: #0B0C10;
+      --surface: #1F2833;
+      --accent: #66FCF1;
+      --text: #FFFFFF;
+      --text2: #C5C6C7;
+    }
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    html, body { height: 100%; background: var(--bg); color: var(--text); overflow: hidden;
+      font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; }
+
+    #stage { position: relative; width: 100%; height: 100%; }
+
+    /* Fondo: video continuo (canvas → captureStream) con la portada difuminada.
+       Android TV posterga el screensaver mientras hay video reproduciendose; el
+       audio solo no alcanza. El blur/brightness se hornean DENTRO del canvas a
+       baja res (320x180 @ 10fps), nunca por CSS sobre el <video> (se recomputaria
+       a pantalla completa en cada frame y funde la GPU del Chromecast). */
+    #bg { position: absolute; inset: 0; overflow: hidden; background: var(--bg); }
+    #bg video { position: absolute; inset: 0; width: 100%; height: 100%;
+      object-fit: cover; opacity: 0; transition: opacity 0.8s ease; }
+    #bg.playing video { opacity: 1; }
+    #bg .logo-bg { position: absolute; inset: 0;
+      display: flex; align-items: center; justify-content: center; }
+    #bg .logo-bg svg { width: 46vmin; height: 46vmin; opacity: 0.10; }
+    #bg.cover .logo-bg { display: none; }
+    #bg.cover::after { content: ""; position: absolute; inset: 0;
+      background: linear-gradient(rgba(11, 12, 16, 0.30), rgba(11, 12, 16, 0.85)); }
+
+    /* Contenido central */
+    #content { position: relative; z-index: 1; height: 100%;
+      display: flex; flex-direction: column; align-items: center; justify-content: center;
+      text-align: center; padding: 0 64px 120px; }
+    #idle .logo { margin-bottom: 32px; }
+    #idle h1 { font-size: 56px; font-weight: 800; letter-spacing: 3px; }
+    #idle h1 span { color: var(--accent); }
+    #idle p { margin-top: 16px; color: var(--text2); font-size: 22px; }
+    #live .station { font-size: 26px; letter-spacing: 4px; text-transform: uppercase;
+      color: var(--accent); text-shadow: 0 2px 12px rgba(0, 0, 0, 0.6); }
+    #live .track { margin-top: 20px; font-size: 44px; font-weight: 700; line-height: 1.25;
+      text-shadow: 0 2px 12px rgba(0, 0, 0, 0.6); }
+    #live .artist { margin-top: 10px; font-size: 28px; color: var(--text2);
+      text-shadow: 0 2px 12px rgba(0, 0, 0, 0.6); }
+    .eq { display: flex; gap: 8px; justify-content: center; align-items: flex-end;
+      height: 64px; margin: 48px auto 0; width: 84px; }
+    .eq span { width: 12px; border-radius: 6px; background: var(--accent);
+      animation: bounce 0.9s ease-in-out infinite; }
+    .eq span:nth-child(2) { animation-delay: 0.15s; }
+    .eq span:nth-child(3) { animation-delay: 0.3s; }
+    .eq span:nth-child(4) { animation-delay: 0.45s; }
+    .eq.paused span { animation-play-state: paused; height: 16px; }
+    @keyframes bounce { 0%, 100% { height: 12px; } 50% { height: 56px; } }
+
+    /* Barra de reproducción propia (la default UI de CAF va desactivada) */
+    #bar { position: absolute; z-index: 2; left: 0; right: 0; bottom: 0;
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 32px 48px;
+      background: linear-gradient(transparent, rgba(11, 12, 16, 0.9)); }
+    #bar .station-small { font-size: 20px; letter-spacing: 2px; text-transform: uppercase;
+      color: var(--text2); }
+    #playBtn { width: 76px; height: 76px; border-radius: 50%; border: none; cursor: pointer;
+      background: var(--accent); display: flex; align-items: center; justify-content: center; }
+    #playBtn svg { width: 34px; height: 34px; fill: #0B0C10; }
+    #playBtn .icon-pause { display: none; }
+    #playBtn.playing .icon-pause { display: block; }
+    #playBtn.playing .icon-play { display: none; }
+    #playBtn.buffering { background: transparent; border: 5px solid rgba(102, 252, 241, 0.25);
+      border-top-color: var(--accent); animation: spin 1s linear infinite; }
+    #playBtn.buffering svg { display: none; }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    .hidden { display: none !important; }
+  </style>
+</head>
+<body>
+  <div id="stage">
+    <!-- Fondo: video continuo (canvas → captureStream); logo en DOM cuando no hay
+         portada. El video se compone como blit escalado plano: barato. -->
+    <div id="bg">
+      <video id="bgVid" muted autoplay loop playsinline></video>
+      <div class="logo-bg">
+        <svg viewBox="0 0 108 108" xmlns="http://www.w3.org/2000/svg" fill="none" aria-hidden="true">
+          <path d="M42.04,30.6 A14.56,14.56 0 0 1 65.96,30.6" stroke="#66FCF1" stroke-width="2.6" stroke-opacity="0.5" stroke-linecap="round"/>
+          <path d="M47.24,34.11 A8.32,8.32 0 0 1 60.76,34.11" stroke="#66FCF1" stroke-width="2.6" stroke-opacity="0.8" stroke-linecap="round"/>
+          <circle cx="54" cy="38.92" r="4.94" fill="#66FCF1" fill-opacity="0.10"/>
+          <circle cx="54" cy="38.92" r="3.25" fill="#66FCF1" fill-opacity="0.20"/>
+          <circle cx="54" cy="38.92" r="1.95" fill="#66FCF1"/>
+          <path d="M52.44,43.6 L40.48,77.4" stroke="#66FCF1" stroke-width="2.86" stroke-linecap="round" stroke-linejoin="round"/>
+          <path d="M55.56,43.6 L67.52,77.4" stroke="#66FCF1" stroke-width="2.86" stroke-linecap="round" stroke-linejoin="round"/>
+          <path d="M47.5,57.38 L60.5,57.38" stroke="#66FCF1" stroke-width="2.86" stroke-linecap="round" stroke-linejoin="round"/>
+          <path d="M43.86,67.78 L64.14,67.78" stroke="#66FCF1" stroke-width="2.86" stroke-linecap="round" stroke-linejoin="round"/>
+          <path d="M38.92,77.4 L69.08,77.4" stroke="#66FCF1" stroke-width="2.86" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+      </div>
+    </div>
+
+    <!-- Contenido central -->
+    <div id="content">
+      <div id="idle" class="hidden">
+        <svg class="logo" width="120" height="120" viewBox="0 0 108 108" xmlns="http://www.w3.org/2000/svg" fill="none">
+          <path d="M42.04,30.6 A14.56,14.56 0 0 1 65.96,30.6" stroke="#66FCF1" stroke-width="2.6" stroke-opacity="0.5" stroke-linecap="round"/>
+          <path d="M47.24,34.11 A8.32,8.32 0 0 1 60.76,34.11" stroke="#66FCF1" stroke-width="2.6" stroke-opacity="0.8" stroke-linecap="round"/>
+          <circle cx="54" cy="38.92" r="4.94" fill="#66FCF1" fill-opacity="0.10"/>
+          <circle cx="54" cy="38.92" r="3.25" fill="#66FCF1" fill-opacity="0.20"/>
+          <circle cx="54" cy="38.92" r="1.95" fill="#66FCF1"/>
+          <path d="M52.44,43.6 L40.48,77.4" stroke="#66FCF1" stroke-width="2.86" stroke-linecap="round" stroke-linejoin="round"/>
+          <path d="M55.56,43.6 L67.52,77.4" stroke="#66FCF1" stroke-width="2.86" stroke-linecap="round" stroke-linejoin="round"/>
+          <path d="M47.5,57.38 L60.5,57.38" stroke="#66FCF1" stroke-width="2.86" stroke-linecap="round" stroke-linejoin="round"/>
+          <path d="M43.86,67.78 L64.14,67.78" stroke="#66FCF1" stroke-width="2.86" stroke-linecap="round" stroke-linejoin="round"/>
+          <path d="M38.92,77.4 L69.08,77.4" stroke="#66FCF1" stroke-width="2.86" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+        <h1>WAVE<span>LINK</span></h1>
+        <p id="idleText">Elegí una radio desde la app para empezar a escuchar</p>
+      </div>
+      <div id="live" class="hidden">
+        <div class="station" id="station">WaveLink</div>
+        <div class="track" id="track">Sintonizando…</div>
+        <div class="artist" id="artist"></div>
+        <div class="eq" id="eq"><span></span><span></span><span></span><span></span></div>
+      </div>
+    </div>
+
+    <!-- Barra de reproducción -->
+    <div id="bar" class="hidden">
+      <div class="station-small" id="barStation">WaveLink</div>
+      <button id="playBtn" type="button">
+        <svg class="icon-play" viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>
+        <svg class="icon-pause" viewBox="0 0 24 24"><path d="M6 19h4V5H6v14zm8-14v14h4V5h-4z"/></svg>
+      </button>
+    </div>
+  </div>
+
+  <script>
+    (function () {
+      'use strict';
+      // El receiver detecta el idioma del dispositivo Cast (es / resto → en).
+      var lang = (navigator.language || 'en').toLowerCase().indexOf('es') === 0 ? 'es' : 'en';
+      document.documentElement.lang = lang;
+      var STRINGS = {
+        es: { idle: 'Elegí una radio desde la app para empezar a escuchar',
+              tuning: 'Sintonizando…', live: 'En vivo', play: 'Reproducir', pause: 'Pausar' },
+        en: { idle: 'Pick a radio from the app to start listening',
+              tuning: 'Tuning in…', live: 'Live', play: 'Play', pause: 'Pause' }
+      };
+      var t = STRINGS[lang];
+
+      function $(id) { return document.getElementById(id); }
+      function show(mode) {
+        $('idle').classList.toggle('hidden', mode !== 'idle');
+        $('live').classList.toggle('hidden', mode !== 'live');
+      }
+
+      var context = cast.framework.CastReceiverContext.getInstance();
+      var playerManager = context.getPlayerManager();
+
+      var pollTimer = null;
+      var polling = false;
+      var apiBase = null;
+      var currentCover = null;
+      var customNow = null;    // now-playing empujado por la app (canal custom)
+      var hasTrackInfo = false;
+      var currentContentId = null;
+
+      function stopPolling() {
+        if (pollTimer) { clearInterval(pollTimer); pollTimer = null; }
+      }
+
+      function schedulePolling() {
+        stopPolling();
+        pollNowPlaying();
+        pollTimer = setInterval(pollNowPlaying, 5000);
+      }
+
+      // ── Now-playing empujado por la app (canal custom) ─────────────────────
+      // La app ya consulta la API y manda {station,title,artist,cover}; la
+      // portada llega como data URI, así no dependemos de CORS ni del esquema
+      // de la API. Manda sobre el polling propio del receiver.
+      function applyCustom(data) {
+        if (data.station) {
+          $('station').textContent = data.station;
+          $('barStation').textContent = data.station;
+        }
+        if (data.title) {
+          $('track').textContent = data.title;
+          $('artist').textContent = data.artist || '';
+          hasTrackInfo = true;
+        } else {
+          $('track').textContent = t.live;
+          $('artist').textContent = '';
+          hasTrackInfo = false;
+        }
+        if (data.cover) applyCover(data.cover); else clearCover();
+        show('live');
+        $('bar').classList.remove('hidden');
+      }
+
+      context.addCustomMessageListener('urn:x-cast:com.cundalf.wavelink', function (event) {
+        var data = event && event.data;
+        if (typeof data === 'string') {
+          try { data = JSON.parse(data); } catch (e) { return; }
+        }
+        if (!data || data.type !== 'now-playing') return;
+        customNow = data;
+        applyCustom(data);
+      });
+
+      // Si se va el último sender (la app sigue sonando desde el propio
+      // receiver), el canal custom muere: volver al polling.
+      var systemEvents = cast.framework.system && cast.framework.system.EventType;
+      if (systemEvents && systemEvents.SENDER_DISCONNECTED) {
+        context.addEventListener(systemEvents.SENDER_DISCONNECTED, function () {
+          if (customNow && context.getSenders && context.getSenders().length === 0) {
+            customNow = null;
+            pollNowPlaying();
+          }
+        });
+      }
+
+      // ── Fondo animado: canvas chico → captureStream → <video> ──────────────
+      // El blur/brightness se hornean aca (320x180, 10fps) en vez de por CSS a
+      // pantalla completa: carga minima para la GPU del Chromecast y el <video>
+      // continua reproduciendose (posterga el screensaver de Android TV).
+      var bgCanvas = document.createElement('canvas');
+      bgCanvas.width = 320;
+      bgCanvas.height = 180;
+      var bgCtx = bgCanvas.getContext('2d');
+      var bgFilterOk = ('filter' in bgCtx);
+      var bgImg = null;
+      var bgT0 = (window.performance && performance.now) ? performance.now() : Date.now();
+      var bgLast = 0;
+      var BG_FPS = 10;
+      var BG_MIN_DT = 1000 / BG_FPS;
+      var bgVideoOk = false;
+
+      // Gradiente de respaldo (sin caratula): se calcula UNA vez.
+      var bgFallback = bgCtx.createLinearGradient(0, 0, bgCanvas.width, bgCanvas.height);
+      bgFallback.addColorStop(0, 'rgba(31, 40, 51, 1)');
+      bgFallback.addColorStop(1, 'rgba(11, 12, 16, 1)');
+
+      function drawBg(now) {
+        requestAnimationFrame(drawBg);
+        if (now - bgLast < BG_MIN_DT) return;
+        bgLast = now;
+
+        var w = bgCanvas.width, h = bgCanvas.height;
+        var t = (now - bgT0) / 1000;
+        bgCtx.filter = 'none';
+        bgCtx.fillStyle = '#0B0C10';
+        bgCtx.fillRect(0, 0, w, h);
+        if (bgImg && bgImg.width) {
+          var scale = 1.08 + 0.04 * Math.sin(t * 0.25);
+          var dx = 6 * Math.sin(t * 0.15);
+          var dy = 5 * Math.cos(t * 0.12);
+          var cover = Math.max(w / bgImg.width, h / bgImg.height) * scale;
+          var dw = bgImg.width * cover, dh = bgImg.height * cover;
+          if (bgFilterOk) bgCtx.filter = 'blur(10px) brightness(0.55)';
+          bgCtx.drawImage(bgImg, (w - dw) / 2 + dx, (h - dh) / 2 + dy, dw, dh);
+          bgCtx.filter = 'none';
+        } else {
+          bgCtx.fillStyle = bgFallback;
+          bgCtx.fillRect(0, 0, w, h);
+        }
+      }
+
+      function startBgVideo() {
+        requestAnimationFrame(drawBg);
+        try {
+          var v = $('bgVid');
+          v.srcObject = bgCanvas.captureStream(BG_FPS);
+          var p = v.play();
+          if (p && p.catch) p.catch(function () {});
+          bgVideoOk = true;
+          $('bg').classList.add('playing');
+        } catch (e) { /* sin captureStream: queda el logo y el fondo oscuro */ }
+      }
+
+      // Screen Wake Lock (refuerzo; puede no estar soportado en el WebView).
+      var wakeLock = null;
+      function requestWakeLock() {
+        try {
+          if (!navigator.wakeLock || wakeLock) return;
+          navigator.wakeLock.request('screen')
+            .then(function (wl) {
+              wakeLock = wl;
+              wl.addEventListener('release', function () { wakeLock = null; });
+            })
+            .catch(function () {});
+        } catch (e) {}
+      }
+      document.addEventListener('visibilitychange', function () {
+        if (document.visibilityState === 'visible') requestWakeLock();
+      });
+
+      // Portada: una sola Image a la vez (la anterior la recolecta el GC).
+      function applyCover(url) {
+        if (!url || url === currentCover) return;
+        currentCover = url;
+        var im = new Image();
+        im.onload = function () { bgImg = im; };
+        im.onerror = function () { /* conserva el fondo anterior */ };
+        im.src = url;
+        if (bgVideoOk) $('bg').classList.add('cover');
+      }
+      function clearCover() {
+        currentCover = null;
+        bgImg = null;
+        $('bg').classList.remove('cover');
+      }
+
+      // La estación publica /api/now-playing en el mismo origen del stream:
+      // si responde (y permite CORS), mostramos track y portada en vivo.
+      function pollNowPlaying() {
+        if (customNow || !apiBase || polling) return;
+        polling = true;
+        var controller = new AbortController();
+        var timeout = setTimeout(function () { controller.abort(); }, 4000);
+        fetch(apiBase + '/api/now-playing', { signal: controller.signal })
+          .then(function (res) { return res.ok ? res.json() : null; })
+          .then(function (data) {
+            if (!data || !data.nowPlaying) return;
+            var track = data.nowPlaying;
+            if (track.title) {
+              $('track').textContent = track.title;
+              $('artist').textContent = track.artist || '';
+              hasTrackInfo = true;
+            }
+            if (track.subsonic_id) applyCover(apiBase + '/api/cover/' + track.subsonic_id);
+            else clearCover();
+          })
+          .catch(function () { /* fallback: queda la metadata que manda la app */ })
+          .finally(function () {
+            clearTimeout(timeout);
+            polling = false;
+          });
+      }
+
+      function render(mediaStatus) {
+        var media = mediaStatus && mediaStatus.media;
+        var playerState = mediaStatus && mediaStatus.playerState;
+        if (!media || playerState === 'IDLE') {
+          show('idle');
+          $('bar').classList.add('hidden');
+          stopPolling();
+          clearCover();
+          customNow = null;
+          hasTrackInfo = false;
+          currentContentId = null;
+          apiBase = null;
+          return;
+        }
+        // Nueva radio: se descarta el now-playing anterior hasta que llegue el
+        // de la app (o del polling) para no mostrar datos viejos.
+        if ((media.contentId || null) !== currentContentId) {
+          currentContentId = media.contentId || null;
+          customNow = null;
+          hasTrackInfo = false;
+          clearCover();
+        }
+        var md = media.metadata || {};
+        // El converter de Media3 manda el tema en `title` (o la radio si no hay
+        // metadata en vivo) y el nombre de la estación en `subtitle`.
+        var title = (customNow && customNow.station) || md.subtitle || md.title || 'WaveLink';
+        $('station').textContent = title;
+        $('barStation').textContent = title;
+        show('live');
+        $('bar').classList.remove('hidden');
+
+        var btn = $('playBtn');
+        var playing = playerState === 'PLAYING';
+        btn.classList.toggle('playing', playing);
+        btn.classList.toggle('buffering', playerState === 'BUFFERING');
+        btn.title = playing ? t.pause : t.play;
+        $('eq').classList.toggle('paused', playerState === 'PAUSED');
+
+        // Media3 manda el mediaId en contentId y el stream en contentUrl:
+        // la URL del stream vive en contentUrl.
+        try { apiBase = new URL(media.contentUrl || media.contentId).origin; } catch (e) { apiBase = null; }
+
+        // La app empuja el now-playing por canal custom: manda sobre el polling.
+        if (customNow) {
+          applyCustom(customNow);
+        } else {
+          if (playerState === 'BUFFERING') {
+            $('track').textContent = t.tuning;
+            $('artist').textContent = '';
+          } else if (!hasTrackInfo) {
+            $('track').textContent = t.live;
+            $('artist').textContent = '';
+          }
+          var metaCover = md.images && md.images[0] && md.images[0].url;
+          if (metaCover) applyCover(metaCover);
+        }
+        schedulePolling();
+      }
+
+      $('playBtn').addEventListener('click', function () {
+        var st = playerManager.getPlayerState();
+        if (st === 'PLAYING') { playerManager.pause(); } else { playerManager.play(); }
+      });
+
+      playerManager.addEventListener(
+        cast.framework.events.EventType.MEDIA_STATUS,
+        function (event) { render(event.mediaStatus); }
+      );
+
+      var options = new cast.framework.CastReceiverOptions();
+      options.disableDefaultUI = true;
+      // La radio puede sonar horas: no dejar que el receiver duerma.
+      options.maxInactivity = 3600;
+      // Canal custom del now-playing (declarado antes de start por contrato).
+      options.customNamespaces = {};
+      if (cast.framework.system && cast.framework.system.MessageType) {
+        options.customNamespaces['urn:x-cast:com.cundalf.wavelink'] = cast.framework.system.MessageType.JSON;
+      }
+      context.start(options);
+
+      // Arranque del keep-alive (las vars del canvas ya estan inicializadas).
+      startBgVideo();
+      requestWakeLock();
+      // Estado inicial visible: si el receiver nunca recibe MEDIA_STATUS, la TV
+      // queda con branding WaveLink en vez de una pantalla negra.
+      show('idle');
+    })();
+  </script>
+</body>
+</html>
