@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Theme.AppCompat.NoActionBar (variante oscura): obligatorio para que
+     MediaRouteButton (botón de cast) pueda resolver sus atributos. -->
+<resources>
+    <style name="Theme.SubWaveCast" parent="Theme.AppCompat.NoActionBar">
+        <item name="android:windowBackground">@color/launcher_background</item>
+    </style>
+</resources>

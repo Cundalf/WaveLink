@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  ObsoleteSdkInt sobre mipmap-anydpi-v26 es un falso positivo: AAPT2 rechaza
+  íconos adaptativos (<adaptive-icon>) en carpetas sin calificador de versión,
+  así que el sufijo -v26 es obligatorio aunque minSdk ya sea 26.
+-->
+<lint>
+    <issue id="ObsoleteSdkInt" severity="ignore">
+        <ignore path="src/main/res/mipmap-anydpi-v26" />
+    </issue>
+</lint>

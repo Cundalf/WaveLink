@@ -1,0 +1,93 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">WaveLink</string>
+
+    <string name="ahora_suena">Now playing</string>
+    <string name="conectando">Connecting…</string>
+    <string name="reproduciendo">Playing</string>
+    <string name="pausado">Paused</string>
+    <string name="reconectando">Reconnecting…</string>
+
+    <string name="radios">Radios</string>
+    <string name="sin_radios">You have no radios yet.\nAdd one to start listening.</string>
+    <string name="agregar_radio">Add radio</string>
+    <string name="editar_radio">Edit radio</string>
+    <string name="marcar_por_defecto">Set as default</string>
+    <string name="por_defecto">Default</string>
+    <string name="opciones">Radio options</string>
+    <string name="editar">Edit</string>
+    <string name="eliminar">Delete</string>
+    <string name="eliminar_confirmacion">Delete this radio?</string>
+
+    <string name="nombre">Name</string>
+    <string name="nombre_ayuda">A short name to recognize it in the list</string>
+    <string name="url_stream">Stream URL</string>
+    <string name="url_ayuda">The stream address, for example https://radio.example.com/stream.mp3</string>
+    <string name="contrasena_opcional">Password (optional)</string>
+    <string name="contrasena_ayuda">Only if your SUB/WAVE station requires a listener password</string>
+    <string name="guardar">Save</string>
+    <string name="cancelar">Cancel</string>
+    <string name="mostrar">Show</string>
+    <string name="ocultar">Hide</string>
+
+    <string name="probar">Test</string>
+    <string name="probando_conexion">Testing…</string>
+    <string name="conexion_ok">Connection OK: SUB/WAVE station found</string>
+    <string name="conexion_ok_stream">The stream responds</string>
+    <string name="conexion_401">The server denied access. Check the password.</string>
+    <string name="conexion_error">Could not connect. Check the URL and your connection.</string>
+    <string name="conexion_datos_si">The station publishes live info</string>
+    <string name="conexion_datos_no">This station does not publish live info</string>
+    <string name="conexion_pedidos_si">The station accepts booth requests</string>
+    <string name="conexion_pedidos_no">No booth requests detected</string>
+
+    <string name="datos_en_vivo">Live info</string>
+    <string name="pedidos_cabina">Booth requests</string>
+
+    <string name="play">Play</string>
+    <string name="pause">Pause</string>
+    <string name="ampliar_reproductor">Expand player</string>
+    <string name="sincronizar">Sync</string>
+    <string name="sincronizar_desc">Sync to the live broadcast</string>
+
+    <string name="error_401">Access denied. Check the URL and password.</string>
+    <string name="error_red">Could not connect to the stream.</string>
+    <string name="error_stream">Could not play the stream.</string>
+    <string name="error_url">The URL must start with http:// or https://</string>
+    <string name="cast_activo">Casting to a device</string>
+    <string name="control_remoto">Remote control</string>
+
+    <string name="sintoniza_para_ver">Tune in to a radio to see what\'s playing</string>
+    <string name="welcome_title">Welcome to WaveLink</string>
+    <string name="welcome_text">An open source app for playing and casting SUB/WAVE radios. Listen on your phone, Google TV and Android Auto.</string>
+    <string name="empezar">Get started</string>
+
+    <string name="ajustes">Settings</string>
+    <string name="idioma">Language</string>
+    <string name="idioma_sistema">System language</string>
+    <string name="espanol">Español</string>
+    <string name="ingles">English</string>
+    <string name="en_el_aire">On air</string>
+    <string name="a_continuacion">Up next: %1$s</string>
+    <plurals name="listeners_count">
+        <item quantity="one">%1$d listener</item>
+        <item quantity="other">%1$d listeners</item>
+    </plurals>
+    <string name="sin_track_info">No track info</string>
+
+    <string name="pedir_tema">Request a song</string>
+    <string name="pedido_titulo">Request to the booth</string>
+    <string name="pedido_ayuda">Type what you want to hear. The DJ looks it up in the library and queues it if it finds a match.</string>
+    <string name="pedido_texto">Your request</string>
+    <string name="pedido_texto_ejemplo">A Radiohead track or something more upbeat…</string>
+    <string name="pedido_nombre">Your name (optional)</string>
+    <string name="pedido_enviar">Send request</string>
+    <string name="pedido_enviando">Sending…</string>
+    <string name="pedido_enviado">The booth got your request</string>
+    <string name="pedido_esperando">The DJ is looking it up…</string>
+    <string name="pedido_resuelto">On its way! %1$s</string>
+    <string name="pedido_listo">Request confirmed. Listen for it on air.</string>
+    <string name="pedido_error">Could not send the request. Try again.</string>
+    <string name="pedido_cerrado">The booth is closed right now.</string>
+    <string name="cerrar">Close</string>
+</resources>

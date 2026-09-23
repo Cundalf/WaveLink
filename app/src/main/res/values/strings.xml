@@ -1,0 +1,93 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">WaveLink</string>
+
+    <string name="ahora_suena">Ahora suena</string>
+    <string name="conectando">Conectando…</string>
+    <string name="reproduciendo">Reproduciendo</string>
+    <string name="pausado">En pausa</string>
+    <string name="reconectando">Reconectando…</string>
+
+    <string name="radios">Radios</string>
+    <string name="sin_radios">Todavía no tenés radios.\nAgregá una para empezar a escuchar.</string>
+    <string name="agregar_radio">Agregar radio</string>
+    <string name="editar_radio">Editar radio</string>
+    <string name="marcar_por_defecto">Marcar como por defecto</string>
+    <string name="por_defecto">Por defecto</string>
+    <string name="opciones">Opciones de la radio</string>
+    <string name="editar">Editar</string>
+    <string name="eliminar">Eliminar</string>
+    <string name="eliminar_confirmacion">¿Eliminar esta radio?</string>
+
+    <string name="nombre">Nombre</string>
+    <string name="nombre_ayuda">Un nombre corto para reconocerla en la lista</string>
+    <string name="url_stream">URL del stream</string>
+    <string name="url_ayuda">La dirección del stream, por ejemplo https://radio.example.com/stream.mp3</string>
+    <string name="contrasena_opcional">Contraseña (opcional)</string>
+    <string name="contrasena_ayuda">Solo si tu estación SUB/WAVE pide contraseña de oyente</string>
+    <string name="guardar">Guardar</string>
+    <string name="cancelar">Cancelar</string>
+    <string name="mostrar">Mostrar</string>
+    <string name="ocultar">Ocultar</string>
+
+    <string name="probar">Probar</string>
+    <string name="probando_conexion">Probando…</string>
+    <string name="conexion_ok">Conexión OK: estación SUB/WAVE encontrada</string>
+    <string name="conexion_ok_stream">El stream responde</string>
+    <string name="conexion_401">El servidor rechazó el acceso. Revisá la contraseña.</string>
+    <string name="conexion_error">No se pudo conectar. Revisá la URL y tu conexión.</string>
+    <string name="conexion_datos_si">La estación publica información en vivo</string>
+    <string name="conexion_datos_no">Esta estación no publica información en vivo</string>
+    <string name="conexion_pedidos_si">La estación admite pedidos a la cabina</string>
+    <string name="conexion_pedidos_no">No se detectaron pedidos a la cabina</string>
+
+    <string name="datos_en_vivo">Información en vivo</string>
+    <string name="pedidos_cabina">Pedidos a la cabina</string>
+
+    <string name="play">Reproducir</string>
+    <string name="pause">Pausar</string>
+    <string name="ampliar_reproductor">Ampliar reproductor</string>
+    <string name="sincronizar">Sincronizar</string>
+    <string name="sincronizar_desc">Sincronizar con la transmisión en vivo</string>
+
+    <string name="error_401">Acceso denegado. Revisá la URL y la contraseña.</string>
+    <string name="error_red">No se pudo conectar al stream.</string>
+    <string name="error_stream">No se pudo reproducir el stream.</string>
+    <string name="error_url">La URL debe empezar con http:// o https://</string>
+    <string name="cast_activo">Casteando a un dispositivo</string>
+    <string name="control_remoto">Control remoto</string>
+
+    <string name="sintoniza_para_ver">Sintonizá una radio para ver qué está sonando</string>
+    <string name="welcome_title">Bienvenido a WaveLink</string>
+    <string name="welcome_text">Una app open source para reproducir y castear radios SUB/WAVE. Escuchá tu radio en el teléfono, en tu Google TV y en Android Auto.</string>
+    <string name="empezar">Empezar</string>
+
+    <string name="ajustes">Ajustes</string>
+    <string name="idioma">Idioma</string>
+    <string name="idioma_sistema">Idioma del sistema</string>
+    <string name="espanol">Español</string>
+    <string name="ingles">English</string>
+    <string name="en_el_aire">En el aire</string>
+    <string name="a_continuacion">A continuación: %1$s</string>
+    <plurals name="listeners_count">
+        <item quantity="one">%1$d oyente</item>
+        <item quantity="other">%1$d oyentes</item>
+    </plurals>
+    <string name="sin_track_info">Sin información de track</string>
+
+    <string name="pedir_tema">Pedir un tema</string>
+    <string name="pedido_titulo">Pedir a la cabina</string>
+    <string name="pedido_ayuda">Escribí qué querés escuchar. El DJ lo busca en su biblioteca y lo pone en la fila si lo encuentra.</string>
+    <string name="pedido_texto">Tu pedido</string>
+    <string name="pedido_texto_ejemplo">Un tema de Radiohead o algo más movido…</string>
+    <string name="pedido_nombre">Tu nombre (opcional)</string>
+    <string name="pedido_enviar">Enviar pedido</string>
+    <string name="pedido_enviando">Enviando…</string>
+    <string name="pedido_enviado">Pedido recibido por la cabina</string>
+    <string name="pedido_esperando">El DJ lo está buscando…</string>
+    <string name="pedido_resuelto">¡Va en camino! %1$s</string>
+    <string name="pedido_listo">Pedido confirmado. Escuchalo en la radio.</string>
+    <string name="pedido_error">No se pudo enviar el pedido. Probá de nuevo.</string>
+    <string name="pedido_cerrado">La cabina está cerrada por ahora.</string>
+    <string name="cerrar">Cerrar</string>
+</resources>

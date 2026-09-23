@@ -1,0 +1,74 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Ícono "radio casting" del design system WaveLink (docs/assets/icono-foreground.svg). -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="108"
+    android:viewportHeight="108">
+
+    <!-- Ondas de señal -->
+    <path
+        android:pathData="M42.04,30.6 A14.56,14.56 0 0 1 65.96,30.6"
+        android:strokeColor="#66FCF1"
+        android:strokeWidth="2.6"
+        android:strokeAlpha="0.5"
+        android:strokeLineCap="round"
+        android:fillColor="#00000000" />
+    <path
+        android:pathData="M47.24,34.11 A8.32,8.32 0 0 1 60.76,34.11"
+        android:strokeColor="#66FCF1"
+        android:strokeWidth="2.6"
+        android:strokeAlpha="0.8"
+        android:strokeLineCap="round"
+        android:fillColor="#00000000" />
+
+    <!-- Baliza (glow simulado por capas) -->
+    <path
+        android:pathData="M54,33.98 a4.94,4.94 0 1 0 0.01,0"
+        android:fillColor="#66FCF1"
+        android:fillAlpha="0.10" />
+    <path
+        android:pathData="M54,35.67 a3.25,3.25 0 1 0 0.01,0"
+        android:fillColor="#66FCF1"
+        android:fillAlpha="0.20" />
+    <path
+        android:pathData="M54,36.97 a1.95,1.95 0 1 0 0.01,0"
+        android:fillColor="#66FCF1" />
+
+    <!-- Torre -->
+    <path
+        android:pathData="M52.44,43.6 L40.48,77.4"
+        android:strokeColor="#66FCF1"
+        android:strokeWidth="2.86"
+        android:strokeLineCap="round"
+        android:strokeLineJoin="round"
+        android:fillColor="#00000000" />
+    <path
+        android:pathData="M55.56,43.6 L67.52,77.4"
+        android:strokeColor="#66FCF1"
+        android:strokeWidth="2.86"
+        android:strokeLineCap="round"
+        android:strokeLineJoin="round"
+        android:fillColor="#00000000" />
+    <path
+        android:pathData="M47.5,57.38 L60.5,57.38"
+        android:strokeColor="#66FCF1"
+        android:strokeWidth="2.86"
+        android:strokeLineCap="round"
+        android:strokeLineJoin="round"
+        android:fillColor="#00000000" />
+    <path
+        android:pathData="M43.86,67.78 L64.14,67.78"
+        android:strokeColor="#66FCF1"
+        android:strokeWidth="2.86"
+        android:strokeLineCap="round"
+        android:strokeLineJoin="round"
+        android:fillColor="#00000000" />
+    <path
+        android:pathData="M38.92,77.4 L69.08,77.4"
+        android:strokeColor="#66FCF1"
+        android:strokeWidth="2.86"
+        android:strokeLineCap="round"
+        android:strokeLineJoin="round"
+        android:fillColor="#00000000" />
+</vector>
