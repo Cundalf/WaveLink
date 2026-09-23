@@ -1,0 +1,81 @@
+build:
+  maxIssues: 0
+  weights: {}
+
+config:
+  validation: true
+  warningsAsErrors: false
+
+processors:
+  active: true
+
+console-reports:
+  active: true
+
+output-reports:
+  active: true
+
+complexity:
+  LongMethod:
+    threshold: 80
+  CyclomaticComplexMethod:
+    threshold: 15
+  LongParameterList:
+    functionThreshold: 9
+    constructorThreshold: 12
+    ignoreDefaultParameters: true
+  TooManyFunctions:
+    thresholdInFiles: 20
+    thresholdInClasses: 15
+
+# Reglas de detekt-compose (io.nlopez.compose.rules)
+Compose:
+  ParameterOrder:
+    active: false
+  LambdaParameterEventTrailing:
+    active: false
+
+naming:
+  FunctionNaming:
+    active: true
+    # Los composables de Compose usan PascalCase por convención.
+    functionPattern: "[A-Za-z][a-zA-Z0-9]*"
+
+style:
+  MagicNumber:
+    active: true
+    ignoreNumbers:
+      - "-1"
+      - "0"
+      - "1"
+      - "2"
+    ignorePropertyDeclaration: true
+  MaxLineLength:
+    maxLineLength: 120
+  UnusedImports:
+    active: true
+  WildcardImport:
+    active: true
+  ForbiddenComment:
+    active: true
+    comments:
+      - "FIXME:"
+      - "STOPSHIP:"
+  ReturnCount:
+    active: false
+
+potential-bugs:
+  UnsafeCast:
+    active: true
+  EqualsWithHashCodeExist:
+    active: true
+
+coroutines:
+  GlobalCoroutineUsage:
+    active: true
+
+exceptions:
+  PrintStackTrace:
+    active: true
+  TooGenericExceptionCaught:
+    active: false
