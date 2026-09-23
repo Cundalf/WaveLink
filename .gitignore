@@ -35,6 +35,12 @@ keystore.properties
 # Bundle del receiver de Cast generado para subir a Cloudflare Pages
 receiver.zip
 
+# opencode (dependencias locales de plugins/skills, no se versionan)
+.opencode/node_modules/
+.opencode/package.json
+.opencode/package-lock.json
+.opencode/bun.lock
+
 # Sistema operativo
 .DS_Store
 Thumbs.db
