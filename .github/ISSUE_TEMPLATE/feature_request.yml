@@ -1,0 +1,39 @@
+name: Propuesta de mejora
+description: Ideas para mejorar WaveLink
+title: "[Feature]: "
+labels: [enhancement]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        WaveLink es minimalista a propósito: una pantalla, sin bloat. Las propuestas que respeten esa filosofía tienen más chances de avanzar.
+
+  - type: checkboxes
+    id: requisitos
+    attributes:
+      label: Requisitos previos
+      options:
+        - label: Busqué en los issues existentes y no encontré esta propuesta.
+          required: true
+
+  - type: textarea
+    id: problema
+    attributes:
+      label: ¿Qué problema resuelve?
+      description: Contá la necesidad o el caso de uso, no solo la solución.
+    validations:
+      required: true
+
+  - type: textarea
+    id: propuesta
+    attributes:
+      label: Propuesta
+    validations:
+      required: true
+
+  - type: textarea
+    id: alternativas
+    attributes:
+      label: Alternativas consideradas (opcional)
+    validations:
+      required: false

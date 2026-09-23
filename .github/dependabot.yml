@@ -1,0 +1,38 @@
+version: 2
+updates:
+  - package-ecosystem: gradle
+    directory: /
+    schedule:
+      interval: weekly
+      day: monday
+    open-pull-requests-limit: 5
+    labels:
+      - dependencies
+    groups:
+      androidx:
+        patterns:
+          - androidx.*
+      kotlin:
+        patterns:
+          - org.jetbrains.kotlin*
+      google-play:
+        patterns:
+          - com.google.android.*
+          - com.android.*
+      quality:
+        patterns:
+          - io.gitlab.arturbosch.*
+          - org.jlleitschuh.*
+          - org.owasp.*
+          - io.nlopez.*
+          - com.github.ben-manes.*
+
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly
+      day: monday
+    open-pull-requests-limit: 5
+    labels:
+      - dependencies
+      - ci
