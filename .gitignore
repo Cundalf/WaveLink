@@ -1,0 +1,40 @@
+# Gradle
+.gradle/
+.kotlin/
+build/
+!gradle/wrapper/gradle-wrapper.jar
+
+# Android Studio / IntelliJ
+.idea/
+*.iml
+*.iws
+*.ipr
+out/
+captures/
+.navigation/
+.externalNativeBuild/
+.cxx/
+
+# Configuración local (ruta del Android SDK, etc.)
+local.properties
+
+# Artefactos de build
+*.apk
+*.aab
+*.aar
+*.ap_
+*.dex
+*.class
+*.log
+
+# Firma: nunca commitear keystores ni credenciales
+*.jks
+*.keystore
+keystore.properties
+
+# Bundle del receiver de Cast generado para subir a Cloudflare Pages
+receiver.zip
+
+# Sistema operativo
+.DS_Store
+Thumbs.db
