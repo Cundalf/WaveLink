@@ -65,8 +65,7 @@ class RadioRepository internal constructor(
                 } else {
                     throw e
                 }
-            }
-            .map { prefs -> RadioJson.decode(prefs[Keys.RADIOS]) }
+            }.map { prefs -> RadioJson.decode(prefs[Keys.RADIOS]) }
             .map { list -> RadioState(list, list.firstOrNull { it.esDefault }) }
             .onEach { loaded.complete(Unit) }
             .stateIn(scope, SharingStarted.Eagerly, RadioState(emptyList(), null))
@@ -156,8 +155,8 @@ class RadioRepository internal constructor(
             withDefault.size == 1 -> list
             withDefault.isEmpty() ->
                 list.mapIndexed {
-                        index,
-                        radio,
+                    index,
+                    radio,
                     ->
                     if (index == 0) radio.copy(esDefault = true) else radio.copy(esDefault = false)
                 }

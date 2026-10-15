@@ -8,7 +8,9 @@ package com.cundalf.wavelink.playback
  * esos eventos producía un loop infinito de "Reconectando…": la única señal de
  * éxito es STATE_READY (o el cambio de radio, que arranca de cero).
  */
-internal class PlaybackRetryPolicy(private val maxRetries: Int) {
+internal class PlaybackRetryPolicy(
+    private val maxRetries: Int,
+) {
     var retries = 0
         private set
 

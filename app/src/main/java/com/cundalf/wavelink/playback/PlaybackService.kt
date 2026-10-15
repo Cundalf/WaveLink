@@ -70,7 +70,8 @@ class PlaybackService : MediaLibraryService() {
         repository = (application as SubWaveCastApplication).radioRepository
 
         exoPlayer =
-            ExoPlayer.Builder(this)
+            ExoPlayer
+                .Builder(this)
                 .setAudioAttributes(AudioAttributes.DEFAULT, true)
                 .setHandleAudioBecomingNoisy(true)
                 .setWakeMode(C.WAKE_MODE_LOCAL)
@@ -78,7 +79,8 @@ class PlaybackService : MediaLibraryService() {
         exoPlayer.addListener(playerListener)
 
         session =
-            MediaLibrarySession.Builder(this, exoPlayer, sessionCallback)
+            MediaLibrarySession
+                .Builder(this, exoPlayer, sessionCallback)
                 // Botón "Sincronizar" en Android Auto, notificación y controles del sistema.
                 .setMediaButtonPreferences(listOf(resyncButton()))
                 // La notificación y el "abrir app" del sistema llevan a MainActivity.
@@ -89,8 +91,7 @@ class PlaybackService : MediaLibraryService() {
                         Intent(this, MainActivity::class.java),
                         PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE,
                     ),
-                )
-                .build()
+                ).build()
         // Avisa a Android Auto cuando cambian las radios (alta, edición o baja en el teléfono).
         serviceScope.launch {
             repository.state
@@ -175,7 +176,8 @@ class PlaybackService : MediaLibraryService() {
      * controles de medios del sistema (media button preferences).
      */
     private fun resyncButton(): CommandButton =
-        CommandButton.Builder()
+        CommandButton
+            .Builder(CommandButton.ICON_UNDEFINED)
             .setSessionCommand(SESSION_COMMAND_RESYNC)
             .setDisplayName(getString(R.string.sincronizar))
             .setCustomIconResId(R.drawable.ic_sync_24)
@@ -240,8 +242,7 @@ class PlaybackService : MediaLibraryService() {
                         } else {
                             sessionCommands
                         },
-                    )
-                    .setAvailablePlayerCommands(playerCommands)
+                    ).setAvailablePlayerCommands(playerCommands)
                     .build()
             }
 
@@ -280,7 +281,9 @@ class PlaybackService : MediaLibraryService() {
                             LibraryTree.ROOT_ID -> LibraryTree.root(getString(R.string.app_name))
                             LibraryTree.STATIONS_ID -> LibraryTree.stationsFolder(this@PlaybackService)
                             else ->
-                                repository.snapshot().firstOrNull { it.id == mediaId }
+                                repository
+                                    .snapshot()
+                                    .firstOrNull { it.id == mediaId }
                                     ?.let { LibraryTree.itemFor(this@PlaybackService, it) }
                         }
                     item?.let { LibraryResult.ofItem(it, null) }

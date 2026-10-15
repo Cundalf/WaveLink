@@ -36,7 +36,8 @@ object RadioMedia {
         context: Context,
     ): MediaItem {
         val artwork = artworkPng(context)
-        return MediaItem.Builder()
+        return MediaItem
+            .Builder()
             .setMediaId(radio.id)
             .setUri(authenticatedUrl(radio))
             // Sin MIME/tipo, DefaultMediaItemConverter asume MEDIA_TYPE_MOVIE y
@@ -47,7 +48,8 @@ object RadioMedia {
             // velocidad a 1x: la radio nunca "acelera" para alcanzar el vivo.
             .setLiveConfiguration(LIVE_CONFIGURATION)
             .setMediaMetadata(
-                MediaMetadata.Builder()
+                MediaMetadata
+                    .Builder()
                     .setTitle(radio.nombre)
                     .setArtist(BRAND)
                     .setMediaType(MediaMetadata.MEDIA_TYPE_RADIO_STATION)
@@ -60,10 +62,8 @@ object RadioMedia {
                         if (artwork.isNotEmpty()) {
                             setArtworkData(artwork, MediaMetadata.PICTURE_TYPE_FRONT_COVER)
                         }
-                    }
-                    .build(),
-            )
-            .build()
+                    }.build(),
+            ).build()
     }
 
     /**
@@ -93,8 +93,7 @@ object RadioMedia {
                     } else {
                         setArtworkUri(null)
                     }
-                }
-                .build()
+                }.build()
         return item.buildUpon().setMediaMetadata(metadata).build()
     }
 
@@ -104,7 +103,12 @@ object RadioMedia {
      * `audio/mpeg` fijo las radios HLS no suenan).
      */
     internal fun mimeTypeFor(streamUrl: String): String {
-        val path = streamUrl.trim().substringBefore('?').substringBefore('#').lowercase()
+        val path =
+            streamUrl
+                .trim()
+                .substringBefore('?')
+                .substringBefore('#')
+                .lowercase()
         return when {
             path.endsWith(".m3u8") -> MimeTypes.APPLICATION_M3U8
             path.endsWith(".mpd") -> MimeTypes.APPLICATION_MPD
@@ -143,7 +147,8 @@ object RadioMedia {
     private const val LIVE_PLAYBACK_SPEED = 1f
 
     private val LIVE_CONFIGURATION =
-        MediaItem.LiveConfiguration.Builder()
+        MediaItem.LiveConfiguration
+            .Builder()
             .setMinPlaybackSpeed(LIVE_PLAYBACK_SPEED)
             .setMaxPlaybackSpeed(LIVE_PLAYBACK_SPEED)
             .build()

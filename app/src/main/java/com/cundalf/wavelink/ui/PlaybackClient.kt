@@ -32,7 +32,9 @@ data class PlaybackUiState(
  * componente que usa Android Auto. La pantalla nunca toca el Player directamente.
  */
 @UnstableApi
-class PlaybackClient(context: Context) {
+class PlaybackClient(
+    context: Context,
+) {
     private val appContext = context.applicationContext
 
     private val _controller = MutableStateFlow<MediaController?>(null)

@@ -10,9 +10,11 @@ import com.google.android.gms.cast.framework.SessionProvider
 class CastOptionsProvider : OptionsProvider {
     override fun getCastOptions(context: Context): CastOptions {
         val receiverId =
-            context.getString(R.string.cast_receiver_id)
+            context
+                .getString(R.string.cast_receiver_id)
                 .ifBlank { CastMediaControlIntent.DEFAULT_MEDIA_RECEIVER_APPLICATION_ID }
-        return CastOptions.Builder()
+        return CastOptions
+            .Builder()
             .setReceiverApplicationId(receiverId)
             .build()
     }

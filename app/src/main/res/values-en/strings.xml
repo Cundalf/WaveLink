@@ -97,4 +97,10 @@
     <string name="pedido_error">Could not send the request. Try again.</string>
     <string name="pedido_cerrado">The booth is closed right now.</string>
     <string name="cerrar">Close</string>
+    <string name="notificaciones_titulo">Notifications</string>
+    <string name="notificaciones_razon">To show the playback controls and the playing track on the lock screen, the app needs notification permission.</string>
+    <string name="notificaciones_ajustes">Notification permission is blocked. You can enable it in system settings.</string>
+    <string name="notificaciones_continuar">Continue</string>
+    <string name="notificaciones_abrir_ajustes">Open settings</string>
+    <string name="notificaciones_ahora_no">Not now</string>
 </resources>

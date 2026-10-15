@@ -35,19 +35,27 @@ sealed interface RequestUiState {
 
     data object Sending : RequestUiState
 
-    data class Sent(val ack: String? = null) : RequestUiState
+    data class Sent(
+        val ack: String? = null,
+    ) : RequestUiState
 
     data class Resolved(
         val ack: String?,
         val track: String?,
     ) : RequestUiState
 
-    data class Closed(val serverMessage: String?) : RequestUiState
+    data class Closed(
+        val serverMessage: String?,
+    ) : RequestUiState
 
-    data class Error(val serverMessage: String?) : RequestUiState
+    data class Error(
+        val serverMessage: String?,
+    ) : RequestUiState
 }
 
-class PlayerViewModel(application: Application) : AndroidViewModel(application) {
+class PlayerViewModel(
+    application: Application,
+) : AndroidViewModel(application) {
     private val app = application as SubWaveCastApplication
     private val repository = app.radioRepository
     private val settings = app.settingsRepository

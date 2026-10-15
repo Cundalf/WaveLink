@@ -6,7 +6,9 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import java.util.Locale
 
-enum class Language(val tag: String) {
+enum class Language(
+    val tag: String,
+) {
     SYSTEM(""),
     ES("es"),
     EN("en"),
@@ -21,7 +23,9 @@ enum class Language(val tag: String) {
  * Idioma elegido por el usuario. Vive en SharedPreferences (y no en DataStore)
  * porque debe poder leerse de forma síncrona en attachBaseContext.
  */
-class LanguageStore(context: Context) {
+class LanguageStore(
+    context: Context,
+) {
     // En attachBaseContext (o en tests Robolectric) applicationContext puede no
     // estar disponible todavía: se usa el context directo como fallback.
     private val prefs =

@@ -59,8 +59,7 @@ internal fun LanguageSheet(
                                 selected = current == language,
                                 role = Role.RadioButton,
                                 onClick = { onSelect(language) },
-                            )
-                            .padding(vertical = 4.dp),
+                            ).padding(vertical = 4.dp),
                     verticalAlignment = Alignment.CenterVertically,
                 ) {
                     RadioButton(

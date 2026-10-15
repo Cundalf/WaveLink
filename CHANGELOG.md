@@ -19,13 +19,16 @@ Versionado [SemVer](https://semver.org/lang/es/).
 - **Archivo de radios corrupto:** se recupera automáticamente (antes el flujo de datos moría en silencio hasta reiniciar). Las radios guardadas sin id o sin URL se descartan al leer.
 - **UI/rendimiento:** animaciones sin recomponer por frame; las portadas se decodifican al tamaño mostrado (≤512 px) con caché por bytes (evita OOM); listas a pantalla completa (contentPadding edge-to-edge); el teclado ya no tapa los formularios (hojas con insets correctos); sin flash de "todavía no tenés radios" antes de cargar.
 - **Accesibilidad:** selector de idioma con foco único y rol correcto; botón principal de reproducción con rol de botón; aviso visible cuando la URL es `http://` ("conexión sin cifrado"); validación de host al guardar; la URL se muestra sin credenciales en la tarjeta.
-- **Seguridad de dependencias:** DataStore 1.1.1 → 1.1.7 (CVE-2024-7254, DoS al parsear datos corruptos) y Media3 1.11.0 → 1.11.1.
+- **Permiso de notificaciones:** se explica el motivo antes de volver a pedirlo y, si quedó bloqueado ("no volver a preguntar"), se ofrece abrir los ajustes del sistema.
+- **Seguridad de dependencias:** DataStore 1.1.1 → 1.2.1 (CVE-2024-7254, DoS al parsear datos corruptos) y Media3 1.11.0 → 1.11.1.
 
 ### Interno
 - Tests: 61 → **101** (regresión de servicio: comandos de `onConnect`, browse tree en frío, MA-1, resolución de `mediaId`; repositorio con DataStore real y corrupción; búsqueda; MIME por extensión; presupuesto del cover de Cast).
 - Miniatura embebida de 256 px (antes 512 px): menos memoria por ítem al listar en el auto.
 - Manifest: el servicio declara también la acción `androidx.media3.session.MediaLibraryService`, `adjustResize` para el teclado y sin scrim de contraste en la barra de navegación (OLED).
 - Log de diagnóstico por conexión (`pkg`, `trusted`, `auto`) para depurar Auto en campo.
+- Toolchain al día: **AGP 9.4.1 + Gradle 9.8.1 + Kotlin 2.4.21** (built-in Kotlin; corrige CVE-2026-53914 del toolchain), compileSdk 37; Compose BOM 2026.09.00, Cast 22.3.1, DataStore 1.2.1, Robolectric 4.17, ktlint 14, OWASP dependency-check 10 (detekt queda en 1.23.8: la línea 2.x sigue en pre-release).
+- CI: acciones de GitHub fijadas por SHA (hardening de supply chain).
 
 ### English
 
@@ -43,11 +46,14 @@ Versionado [SemVer](https://semver.org/lang/es/).
 - **Corrupt radios file** self-recovers; entries without id or URL are discarded.
 - **UI/performance:** animations no longer recompose per frame; covers decode to display size (≤512 px) with a byte-sized cache (OOM-safe); edge-to-edge list padding; keyboard no longer covers forms; no empty-state flash before loading.
 - **Accessibility:** single-focus language selector with proper role; play button role; visible "unencrypted connection" warning for `http://` URLs; host validation; URL shown without credentials on the card.
-- **Dependency security:** DataStore 1.1.1 → 1.1.7 (CVE-2024-7254) and Media3 1.11.0 → 1.11.1.
+- **Notification permission:** the app explains why before asking again and, if it is blocked ("don't ask again"), offers to open system settings.
+- **Dependency security:** DataStore 1.1.1 → 1.2.1 (CVE-2024-7254) and Media3 1.11.0 → 1.11.1.
 
 #### Internal
 - Tests: 61 → **101** (service-level regressions: `onConnect` commands, cold-start browse tree, MA-1, media id resolution; repository with real DataStore and corruption; search; per-extension MIME; Cast cover budget).
 - Embedded artwork 256 px; `MediaLibraryService` action in the manifest; `adjustResize`; no navigation-bar contrast scrim on OLED; per-connection diagnostic log (`pkg`, `trusted`, `auto`).
+- Toolchain up to date: **AGP 9.4.1 + Gradle 9.8.1 + Kotlin 2.4.21** (built-in Kotlin; fixes toolchain CVE-2026-53914), compileSdk 37; Compose BOM 2026.09.00, Cast 22.3.1, DataStore 1.2.1, Robolectric 4.17, ktlint 14, OWASP dependency-check 10 (detekt stays at 1.23.8: the 2.x line is still pre-release).
+- CI: GitHub Actions pinned by SHA (supply-chain hardening).
 
 ## [0.3.0] — 2026-09-22
 

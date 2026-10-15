@@ -97,4 +97,10 @@
     <string name="pedido_error">No se pudo enviar el pedido. Probá de nuevo.</string>
     <string name="pedido_cerrado">La cabina está cerrada por ahora.</string>
     <string name="cerrar">Cerrar</string>
+    <string name="notificaciones_titulo">Notificaciones</string>
+    <string name="notificaciones_razon">Para mostrar los controles de reproducción y el tema que suena en la pantalla de bloqueo, la app necesita el permiso de notificaciones.</string>
+    <string name="notificaciones_ajustes">El permiso de notificaciones está bloqueado. Podés habilitarlo desde los ajustes del sistema.</string>
+    <string name="notificaciones_continuar">Continuar</string>
+    <string name="notificaciones_abrir_ajustes">Abrir ajustes</string>
+    <string name="notificaciones_ahora_no">Ahora no</string>
 </resources>

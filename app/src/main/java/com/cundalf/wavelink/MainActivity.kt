@@ -9,16 +9,22 @@ import android.content.res.Configuration
 import android.os.Build
 import android.os.Bundle
 import android.provider.MediaStore
+import android.provider.Settings
 import androidx.activity.SystemBarStyle
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
+import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.res.stringResource
 import androidx.core.content.ContextCompat
 import androidx.fragment.app.FragmentActivity
 import androidx.lifecycle.ViewModelProvider
@@ -60,11 +66,26 @@ class MainActivity : FragmentActivity() {
                 // rememberSaveable: sobrevive rotación/recreación para no volver
                 // a disparar el autoplay (resumiría una radio pausada).
                 var didAutoplayDefault by rememberSaveable { mutableStateOf(false) }
+                var showNotificationRationale by rememberSaveable { mutableStateOf(false) }
+                var showNotificationSettings by rememberSaveable { mutableStateOf(false) }
 
                 val notificationPermission =
                     rememberLauncherForActivityResult(
                         ActivityResultContracts.RequestPermission(),
-                    ) { }
+                    ) { granted ->
+                        if (!granted && Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+                            // Buenas prácticas de permisos: si se puede volver a
+                            // pedir, explicar antes; si quedó bloqueado, ofrecer ajustes.
+                            if (shouldShowRequestPermissionRationale(
+                                    Manifest.permission.POST_NOTIFICATIONS,
+                                )
+                            ) {
+                                showNotificationRationale = true
+                            } else {
+                                showNotificationSettings = true
+                            }
+                        }
+                    }
 
                 LaunchedEffect(Unit) {
                     if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU &&
@@ -90,6 +111,25 @@ class MainActivity : FragmentActivity() {
                 }
 
                 SubWaveCastApp(viewModel)
+
+                if (showNotificationRationale) {
+                    NotificationRationaleDialog(
+                        onContinue = {
+                            showNotificationRationale = false
+                            notificationPermission.launch(Manifest.permission.POST_NOTIFICATIONS)
+                        },
+                        onDismiss = { showNotificationRationale = false },
+                    )
+                }
+                if (showNotificationSettings) {
+                    NotificationSettingsDialog(
+                        onOpenSettings = {
+                            showNotificationSettings = false
+                            openNotificationSettings()
+                        },
+                        onDismiss = { showNotificationSettings = false },
+                    )
+                }
             }
         }
 
@@ -121,6 +161,65 @@ class MainActivity : FragmentActivity() {
 
     private val radioRepository: RadioRepository
         get() = (application as SubWaveCastApplication).radioRepository
+
+    /**
+     * Explicación antes de volver a pedir el permiso de notificaciones
+     * (el sistema exige mostrar un rationale antes del segundo pedido).
+     */
+    @Composable
+    private fun NotificationRationaleDialog(
+        onContinue: () -> Unit,
+        onDismiss: () -> Unit,
+    ) {
+        AlertDialog(
+            onDismissRequest = onDismiss,
+            title = { Text(stringResource(R.string.notificaciones_titulo)) },
+            text = { Text(stringResource(R.string.notificaciones_razon)) },
+            confirmButton = {
+                TextButton(onClick = onContinue) {
+                    Text(stringResource(R.string.notificaciones_continuar))
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = onDismiss) {
+                    Text(stringResource(R.string.notificaciones_ahora_no))
+                }
+            },
+        )
+    }
+
+    /**
+     * Si el permiso quedó bloqueado ("no volver a preguntar"), el único camino
+     * es mandar al usuario a los ajustes de notificaciones de la app.
+     */
+    @Composable
+    private fun NotificationSettingsDialog(
+        onOpenSettings: () -> Unit,
+        onDismiss: () -> Unit,
+    ) {
+        AlertDialog(
+            onDismissRequest = onDismiss,
+            title = { Text(stringResource(R.string.notificaciones_titulo)) },
+            text = { Text(stringResource(R.string.notificaciones_ajustes)) },
+            confirmButton = {
+                TextButton(onClick = onOpenSettings) {
+                    Text(stringResource(R.string.notificaciones_abrir_ajustes))
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = onDismiss) {
+                    Text(stringResource(R.string.notificaciones_ahora_no))
+                }
+            },
+        )
+    }
+
+    private fun openNotificationSettings() {
+        startActivity(
+            Intent(Settings.ACTION_APP_NOTIFICATION_SETTINGS)
+                .putExtra(Settings.EXTRA_APP_PACKAGE, packageName),
+        )
+    }
 
     private fun isCarMode(context: Context): Boolean {
         val uiModeManager = context.getSystemService(Context.UI_MODE_SERVICE) as? UiModeManager

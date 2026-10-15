@@ -25,25 +25,28 @@ internal object LibraryTree {
     const val STATIONS_ID = "stations"
 
     fun root(title: String): MediaItem =
-        MediaItem.Builder()
+        MediaItem
+            .Builder()
             .setMediaId(ROOT_ID)
             .setMediaMetadata(
-                MediaMetadata.Builder()
+                MediaMetadata
+                    .Builder()
                     .setTitle(title)
                     .setMediaType(MediaMetadata.MEDIA_TYPE_FOLDER_RADIO_STATIONS)
                     .setIsBrowsable(true)
                     .setIsPlayable(false)
                     .build(),
-            )
-            .build()
+            ).build()
 
     /** Carpeta con las radios; lleva miniatura (MC-1: título e imagen en cada ítem). */
     fun stationsFolder(context: Context): MediaItem {
         val artwork = RadioMedia.artworkPng(context)
-        return MediaItem.Builder()
+        return MediaItem
+            .Builder()
             .setMediaId(STATIONS_ID)
             .setMediaMetadata(
-                MediaMetadata.Builder()
+                MediaMetadata
+                    .Builder()
                     .setTitle(context.getString(R.string.radios))
                     .setMediaType(MediaMetadata.MEDIA_TYPE_FOLDER_RADIO_STATIONS)
                     .setIsBrowsable(true)
@@ -52,10 +55,8 @@ internal object LibraryTree {
                         if (artwork.isNotEmpty()) {
                             setArtworkData(artwork, MediaMetadata.PICTURE_TYPE_FRONT_COVER)
                         }
-                    }
-                    .build(),
-            )
-            .build()
+                    }.build(),
+            ).build()
     }
 
     /** Hijos de [parentId]. Un nodo desconocido no tiene descendientes. */

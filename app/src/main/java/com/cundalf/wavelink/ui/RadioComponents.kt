@@ -354,7 +354,11 @@ internal fun sanitizedStreamUrl(url: String): String {
     val encodedAuthority = uri.encodedAuthority ?: return trimmed
     val sanitizedAuthority = encodedAuthority.removePrefix("$encodedUserInfo@")
     if (sanitizedAuthority == encodedAuthority) return trimmed
-    return uri.buildUpon().encodedAuthority(sanitizedAuthority).build().toString()
+    return uri
+        .buildUpon()
+        .encodedAuthority(sanitizedAuthority)
+        .build()
+        .toString()
 }
 
 private val CoverShape = RoundedCornerShape(16.dp)

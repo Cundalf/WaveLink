@@ -34,9 +34,14 @@ class LibraryTreeTest {
 
     /** Pedido de búsqueda por voz: mediaId por defecto + searchQuery, sin URI. */
     private fun search(query: String?): MediaItem =
-        MediaItem.Builder()
-            .setRequestMetadata(MediaItem.RequestMetadata.Builder().setSearchQuery(query).build())
-            .build()
+        MediaItem
+            .Builder()
+            .setRequestMetadata(
+                MediaItem.RequestMetadata
+                    .Builder()
+                    .setSearchQuery(query)
+                    .build(),
+            ).build()
 
     @Test
     fun rootIsBrowsableAndNotPlayable() {
@@ -91,7 +96,11 @@ class LibraryTreeTest {
         assertEquals(listOf("a"), resolved.map { it.mediaId })
         assertEquals(
             "https://radio.example.com/stream.mp3",
-            resolved.single().localConfiguration?.uri?.toString(),
+            resolved
+                .single()
+                .localConfiguration
+                ?.uri
+                ?.toString(),
         )
     }
 
@@ -102,7 +111,11 @@ class LibraryTreeTest {
         assertEquals(listOf("b"), resolved.map { it.mediaId })
         assertEquals(
             "https://radio.example.com/stream.mp3",
-            resolved.single().localConfiguration?.uri?.toString(),
+            resolved
+                .single()
+                .localConfiguration
+                ?.uri
+                ?.toString(),
         )
     }
 

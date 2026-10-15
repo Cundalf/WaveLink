@@ -1,6 +1,5 @@
 package com.cundalf.wavelink.ui
 
-import android.app.Activity
 import androidx.activity.compose.LocalActivity
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.PaddingValues
@@ -49,7 +48,7 @@ fun SubWaveCastApp(
     val language by viewModel.language.collectAsStateWithLifecycle()
     val dialogs = remember { DialogStates() }
     val currentRadio = state.radios.firstOrNull { it.id == player.mediaId }
-    val activity = LocalActivity.current as? Activity
+    val activity = LocalActivity.current
 
     HomeScreen(
         radios = state.radios,

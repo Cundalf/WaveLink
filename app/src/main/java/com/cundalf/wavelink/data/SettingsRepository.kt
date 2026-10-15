@@ -9,7 +9,9 @@ import kotlinx.coroutines.flow.map
 
 private val Context.settingsDataStore by preferencesDataStore(name = "settings")
 
-class SettingsRepository(private val context: Context) {
+class SettingsRepository(
+    private val context: Context,
+) {
     private object Keys {
         val WELCOME_SHOWN = booleanPreferencesKey("welcome_shown")
     }

@@ -1,27 +1,28 @@
 [versions]
-agp = "8.9.2"
-kotlin = "2.2.0"
-coreKtx = "1.15.0"
-lifecycle = "2.8.7"
-activityCompose = "1.10.1"
-fragment = "1.8.5"
-composeBom = "2026.06.00"
+agp = "9.4.1"
+kotlin = "2.4.21"
+coreKtx = "1.19.1"
+lifecycle = "2.11.0"
+activityCompose = "1.13.0"
+fragment = "1.9.1"
+composeBom = "2026.09.00"
 materialIconsCore = "1.7.8"
 media3 = "1.11.1"
-datastore = "1.1.7"
-castFramework = "22.1.0"
-mediarouter = "1.7.0"
+datastore = "1.2.1"
+castFramework = "22.3.1"
+mediarouter = "1.8.1"
 junit = "4.13.2"
-robolectric = "4.14.1"
+robolectric = "4.17"
 
 # Herramientas de calidad / análisis estático
 detekt = "1.23.8"
 detektCompose = "0.4.23"
-ktlint = "12.1.2"
-dependencyCheck = "9.2.0"
-benManesVersions = "0.51.0"
+ktlint = "14.2.0"
+dependencyCheck = "10.0.3"
+benManesVersions = "0.54.0"
 
 [libraries]
+kotlin-gradle-plugin = { group = "org.jetbrains.kotlin", name = "kotlin-gradle-plugin", version.ref = "kotlin" }
 androidx-core-ktx = { group = "androidx.core", name = "core-ktx", version.ref = "coreKtx" }
 androidx-lifecycle-runtime-ktx = { group = "androidx.lifecycle", name = "lifecycle-runtime-ktx", version.ref = "lifecycle" }
 androidx-lifecycle-runtime-compose = { group = "androidx.lifecycle", name = "lifecycle-runtime-compose", version.ref = "lifecycle" }
@@ -48,7 +49,6 @@ detekt-compose = { group = "io.nlopez.compose.rules", name = "detekt", version.r
 
 [plugins]
 android-application = { id = "com.android.application", version.ref = "agp" }
-kotlin-android = { id = "org.jetbrains.kotlin.android", version.ref = "kotlin" }
 kotlin-compose = { id = "org.jetbrains.kotlin.plugin.compose", version.ref = "kotlin" }
 detekt = { id = "io.gitlab.arturbosch.detekt", version.ref = "detekt" }
 ktlint = { id = "org.jlleitschuh.gradle.ktlint", version.ref = "ktlint" }

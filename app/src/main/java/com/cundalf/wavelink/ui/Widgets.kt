@@ -88,8 +88,7 @@ private fun EqualizerBar(scaleYProvider: () -> Float) {
                 .graphicsLayer {
                     transformOrigin = EQ_BAR_TRANSFORM_ORIGIN
                     scaleY = scaleYProvider()
-                }
-                .clip(RoundedCornerShape(2.dp))
+                }.clip(RoundedCornerShape(2.dp))
                 .background(MaterialTheme.colorScheme.primary),
     )
 }

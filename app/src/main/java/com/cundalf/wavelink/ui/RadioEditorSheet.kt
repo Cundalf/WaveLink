@@ -395,8 +395,7 @@ private fun SettingSwitchRow(
                     value = checked,
                     role = Role.Switch,
                     onValueChange = onCheckedChange,
-                )
-                .semantics(mergeDescendants = true) {}
+                ).semantics(mergeDescendants = true) {}
                 .padding(vertical = 6.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {

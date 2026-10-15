@@ -14,6 +14,7 @@ Estas skills se copiaron de repositorios públicos. Mantener trazabilidad al act
   - `r8-analyzer` (performance/r8-analyzer)
   - `play-policy-insights` (play/play-policy-insights)
   - `edge-to-edge` (system/edge-to-edge)
+  - `agp-9-upgrade` (build-system/agp/agp-9-upgrade)
 - Actualizar: `git clone --depth 1 https://github.com/android/skills` y re-copiar la carpeta del skill.
 
 ## sunnat629/android-media-pack (comunidad, Apache-2.0)

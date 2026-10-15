@@ -1,8 +1,5 @@
-import org.jetbrains.kotlin.gradle.dsl.JvmTarget
-
 plugins {
     alias(libs.plugins.android.application)
-    alias(libs.plugins.kotlin.android)
     alias(libs.plugins.kotlin.compose)
     alias(libs.plugins.detekt)
     alias(libs.plugins.ktlint)
@@ -11,7 +8,9 @@ plugins {
 
 android {
     namespace = "com.cundalf.wavelink"
-    compileSdk = 36
+    // compileSdk 37: lo requieren core-ktx 1.19 y Compose 1.12 (BOM 2026.09).
+    // targetSdk se mantiene en 36 a propósito: optimización separada del compileSdk.
+    compileSdk = 37
 
     defaultConfig {
         applicationId = "com.cundalf.wavelink"
@@ -55,6 +54,8 @@ android {
     buildFeatures {
         compose = true
         buildConfig = true
+        // AGP 9 desactiva resValues por defecto; la app la usa para cast_receiver_id.
+        resValues = true
     }
 
     lint {
@@ -84,16 +85,14 @@ dependencyCheck {
     failBuildOnCVSS = 7.0f
     formats = listOf("HTML", "JSON")
     skip =
-        providers.environmentVariable("DEPENDENCY_CHECK_SKIP")
+        providers
+            .environmentVariable("DEPENDENCY_CHECK_SKIP")
             .map { it.equals("true", ignoreCase = true) }
             .getOrElse(false)
 }
 
-kotlin {
-    compilerOptions {
-        jvmTarget.set(JvmTarget.JVM_17)
-    }
-}
+// Con built-in Kotlin (AGP 9) el jvmTarget de Kotlin toma por defecto el
+// targetCompatibility de compileOptions (17), no hace falta configurarlo.
 
 dependencies {
     implementation(libs.androidx.core.ktx)

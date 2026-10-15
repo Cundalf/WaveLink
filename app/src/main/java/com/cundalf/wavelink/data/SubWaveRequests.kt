@@ -4,11 +4,17 @@ import org.json.JSONObject
 
 /** Resultado de enviar un pedido a la cabina (POST /api/request). */
 sealed interface RequestSubmission {
-    data class Accepted(val requestId: String) : RequestSubmission
+    data class Accepted(
+        val requestId: String,
+    ) : RequestSubmission
 
-    data class Rejected(val message: String?) : RequestSubmission
+    data class Rejected(
+        val message: String?,
+    ) : RequestSubmission
 
-    data class Closed(val message: String?) : RequestSubmission
+    data class Closed(
+        val message: String?,
+    ) : RequestSubmission
 
     data object Failed : RequestSubmission
 }

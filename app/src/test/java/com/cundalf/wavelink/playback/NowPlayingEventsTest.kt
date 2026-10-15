@@ -29,8 +29,18 @@ class NowPlayingEventsTest {
     @Test
     fun publishReplacesTheSnapshot() {
         NowPlayingEvents.publish(NowPlayingEvents.Update("radio-1", NowPlaying(title = "A")))
-        assertEquals("A", NowPlayingEvents.update.value?.nowPlaying?.title)
+        assertEquals(
+            "A",
+            NowPlayingEvents.update.value
+                ?.nowPlaying
+                ?.title,
+        )
         NowPlayingEvents.publish(NowPlayingEvents.Update("radio-2", NowPlaying(title = "B")))
-        assertEquals("B", NowPlayingEvents.update.value?.nowPlaying?.title)
+        assertEquals(
+            "B",
+            NowPlayingEvents.update.value
+                ?.nowPlaying
+                ?.title,
+        )
     }
 }
