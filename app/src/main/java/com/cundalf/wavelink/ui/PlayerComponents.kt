@@ -44,6 +44,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
@@ -51,6 +52,7 @@ import androidx.media3.common.Player
 import com.cundalf.wavelink.R
 import com.cundalf.wavelink.data.NowPlaying
 import com.cundalf.wavelink.playback.PlaybackError
+import java.util.Locale
 
 // ---------------------------------------------------------------------------
 // Top bar (botón de cast persistente arriba a la derecha, per design system)
@@ -231,7 +233,7 @@ private fun miniStatus(
                 if (track.isNullOrBlank()) {
                     stringResource(R.string.reproduciendo)
                 } else {
-                    "${stringResource(R.string.reproduciendo)} · $track"
+                    stringResource(R.string.reproduciendo_track, track)
                 }
             text to MaterialTheme.colorScheme.primary
         }
@@ -296,12 +298,11 @@ internal fun FullPlayerContent(
                 .fillMaxWidth()
                 .verticalScroll(rememberScrollState())
                 .padding(horizontal = 24.dp)
-                .padding(bottom = 24.dp)
-                .navigationBarsPadding(),
+                .padding(bottom = 24.dp),
         horizontalAlignment = Alignment.CenterHorizontally,
     ) {
         Text(
-            text = stringResource(R.string.app_name).uppercase(),
+            text = stringResource(R.string.app_name).uppercase(Locale.ROOT),
             style = MaterialTheme.typography.labelMedium,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
         )
@@ -393,7 +394,12 @@ private fun TrackSection(nowPlaying: NowPlaying?) {
             Spacer(Modifier.height(12.dp))
             val tagline = nowPlaying.djTagline?.let { ", $it" } ?: ""
             Text(
-                text = stringResource(R.string.en_el_aire) + " — " + dj + tagline,
+                text =
+                    stringResource(
+                        R.string.en_el_aire_dj,
+                        stringResource(R.string.en_el_aire),
+                        dj + tagline,
+                    ),
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                 textAlign = TextAlign.Center,
@@ -442,8 +448,11 @@ private fun PlayerStatusLine(
             errorText != null -> errorText
 
             castActive ->
-                (stringResource(R.string.cast_activo) + " — " + stringResource(R.string.control_remoto)) to
-                    MaterialTheme.colorScheme.primary
+                stringResource(
+                    R.string.cast_activo_detalle,
+                    stringResource(R.string.cast_activo),
+                    stringResource(R.string.control_remoto),
+                ) to MaterialTheme.colorScheme.primary
 
             player.playWhenReady && player.playbackState == Player.STATE_BUFFERING ->
                 stringResource(R.string.conectando) to MaterialTheme.colorScheme.primary
@@ -508,7 +517,7 @@ private fun BigPlayButton(
                 .size(88.dp)
                 .clip(CircleShape)
                 .background(MaterialTheme.colorScheme.primary)
-                .clickable(onClick = onClick),
+                .clickable(role = Role.Button, onClick = onClick),
         contentAlignment = Alignment.Center,
     ) {
         if (isBuffering) {

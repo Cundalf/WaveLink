@@ -22,21 +22,33 @@ internal object RadioJson {
         return array.toString()
     }
 
+    /**
+     * Decodifica la lista guardada. Parseo tolerante: JSON ausente o inválido devuelve
+     * lista vacía. Las entradas sin `id` o sin `url` (o con solo espacios) se descartan:
+     * una radio sin URL no se puede reproducir y rompería el árbol de Android Auto.
+     * El resto de los campos usa los defaults de compatibilidad de [Radio].
+     */
     fun decode(json: String?): List<Radio> {
         if (json.isNullOrBlank()) return emptyList()
         return runCatching {
             val array = JSONArray(json)
-            (0 until array.length()).map { i ->
+            (0 until array.length()).mapNotNull { i ->
                 val obj = array.getJSONObject(i)
-                Radio(
-                    id = obj.optString("id"),
-                    nombre = obj.optString("nombre"),
-                    streamUrl = obj.optString("url"),
-                    password = obj.optString("password").ifBlank { null },
-                    esDefault = obj.optBoolean("default"),
-                    showNowPlaying = obj.optBoolean("showNowPlaying", true),
-                    allowRequests = obj.optBoolean("allowRequests", false),
-                )
+                val id = obj.optString("id")
+                val streamUrl = obj.optString("url")
+                if (id.isBlank() || streamUrl.isBlank()) {
+                    null
+                } else {
+                    Radio(
+                        id = id,
+                        nombre = obj.optString("nombre"),
+                        streamUrl = streamUrl,
+                        password = obj.optString("password").ifBlank { null },
+                        esDefault = obj.optBoolean("default"),
+                        showNowPlaying = obj.optBoolean("showNowPlaying", true),
+                        allowRequests = obj.optBoolean("allowRequests", false),
+                    )
+                }
             }
         }.getOrDefault(emptyList())
     }

@@ -1,6 +1,9 @@
 package com.cundalf.wavelink.playback
 
+import android.app.PendingIntent
+import android.content.Intent
 import android.os.Bundle
+import android.util.Log
 import androidx.media3.common.AudioAttributes
 import androidx.media3.common.C
 import androidx.media3.common.MediaItem
@@ -18,6 +21,7 @@ import androidx.media3.session.MediaSession
 import androidx.media3.session.SessionCommand
 import androidx.media3.session.SessionError
 import androidx.media3.session.SessionResult
+import com.cundalf.wavelink.MainActivity
 import com.cundalf.wavelink.R
 import com.cundalf.wavelink.SubWaveCastApplication
 import com.cundalf.wavelink.data.NowPlaying
@@ -27,11 +31,17 @@ import com.cundalf.wavelink.data.SubWaveApi
 import com.google.common.collect.ImmutableList
 import com.google.common.util.concurrent.Futures
 import com.google.common.util.concurrent.ListenableFuture
+import com.google.common.util.concurrent.SettableFuture
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.cancel
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.flow.filter
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
@@ -71,8 +81,34 @@ class PlaybackService : MediaLibraryService() {
             MediaLibrarySession.Builder(this, exoPlayer, sessionCallback)
                 // Botón "Sincronizar" en Android Auto, notificación y controles del sistema.
                 .setMediaButtonPreferences(listOf(resyncButton()))
+                // La notificación y el "abrir app" del sistema llevan a MainActivity.
+                .setSessionActivity(
+                    PendingIntent.getActivity(
+                        this,
+                        0,
+                        Intent(this, MainActivity::class.java),
+                        PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE,
+                    ),
+                )
                 .build()
-        preloadDefaultRadio(session)
+        // Avisa a Android Auto cuando cambian las radios (alta, edición o baja en el teléfono).
+        serviceScope.launch {
+            repository.state
+                // Antes de la primera lectura de DataStore la lista está vacía: no
+                // notificar ese estado transitorio (el auto vería una carpeta vacía).
+                .filter { repository.isLoaded }
+                .map { it.radios }
+                .distinctUntilChanged()
+                .collect { radios ->
+                    session.notifyChildrenChanged(LibraryTree.STATIONS_ID, radios.size, null)
+                }
+        }
+        // En el arranque en frío las radios aún no están leídas: precargar antes de
+        // tiempo dejaba la radio por defecto sin cargar.
+        serviceScope.launch {
+            repository.awaitLoaded(REPOSITORY_LOAD_TIMEOUT_MS)
+            preloadDefaultRadio(session)
+        }
         castBridge =
             CastBridge(this, session).also {
                 it.onCastStateChanged = { syncNowPlaying(forceRestart = true) }
@@ -92,9 +128,39 @@ class PlaybackService : MediaLibraryService() {
         }
     }
 
+    /**
+     * Responde [block] cuando el repositorio ya leyó DataStore. Antes de eso la lista
+     * está vacía: Android Auto mostraría una carpeta sin radios, o un mediaId válido
+     * se descartaría como inexistente. La espera tiene tope para no colgar el callback.
+     */
+    private fun <T> whenLoaded(block: () -> T): ListenableFuture<T> {
+        val future = SettableFuture.create<T>()
+        val complete = {
+            if (!future.isDone) {
+                runCatching(block).fold(future::set, future::setException)
+            }
+        }
+        if (repository.isLoaded) {
+            complete()
+        } else {
+            val job =
+                serviceScope.launch {
+                    repository.awaitLoaded(REPOSITORY_LOAD_TIMEOUT_MS)
+                    complete()
+                }
+            job.invokeOnCompletion { cause ->
+                // Scope cancelado (onDestroy): Media3 no debe quedar esperando un
+                // callback que ya nunca va a llegar.
+                if (cause != null && !future.isDone) future.cancel(false)
+            }
+        }
+        return future
+    }
+
     override fun onGetSession(controller: MediaSession.ControllerInfo): MediaLibrarySession = session
 
     override fun onDestroy() {
+        serviceScope.cancel()
         retryJob?.cancel()
         nowPlayingJob?.cancel()
         castBridge?.release()
@@ -135,19 +201,48 @@ class PlaybackService : MediaLibraryService() {
                 session: MediaSession,
                 controller: MediaSession.ControllerInfo,
             ): MediaSession.ConnectionResult {
-                // Sin esto el botón se filtra del layout y el controller no
-                // puede enviar el comando.
-                val result = super.onConnect(session, controller)
-                return if (result.isAccepted) {
-                    MediaSession.ConnectionResult.AcceptedResultBuilder(session, controller)
-                        .setAvailableSessionCommands(
-                            result.availableSessionCommands.buildUpon().add(SESSION_COMMAND_RESYNC).build(),
-                        )
-                        .setAvailablePlayerCommands(result.availablePlayerCommands)
+                // AcceptedResultBuilder(session, controller) parte de los comandos que
+                // corresponden al controlador (propio: todos; ajeno: solo lectura) y se le
+                // suma el botón Sincronizar. No copiar los de super.onConnect(): devuelve un
+                // marcador "no implementado" con comandos VACÍOS, y el controlador quedaba
+                // sin setMediaItem/prepare/play (tocar Play no hacía nada).
+                val trusted = controller.isTrusted
+                val auto =
+                    session.isAutoCompanionController(controller) ||
+                        session.isAutomotiveController(controller)
+                // Una vez por conexión, sin datos sensibles: diagnóstico de campo.
+                Log.i(TAG, "onConnect pkg=${controller.packageName} trusted=$trusted auto=$auto")
+                val defaults =
+                    MediaSession.ConnectionResult
+                        .AcceptedResultBuilder(session, controller)
                         .build()
-                } else {
-                    result
-                }
+                // En dispositivos donde gearhead no es privilegiado, Android Auto
+                // llega como controlador no confiable y quedaría solo-lectura (mismo
+                // síntoma del rechazo de Play de 0.3.0): se le dan los comandos completos.
+                val sessionCommands =
+                    if (auto && !trusted) {
+                        MediaSession.ConnectionResult.DEFAULT_SESSION_AND_LIBRARY_COMMANDS
+                    } else {
+                        defaults.availableSessionCommands
+                    }
+                val playerCommands =
+                    if (auto && !trusted) {
+                        MediaSession.ConnectionResult.DEFAULT_PLAYER_COMMANDS
+                    } else {
+                        defaults.availablePlayerCommands
+                    }
+                return MediaSession.ConnectionResult
+                    .AcceptedResultBuilder(session, controller)
+                    .setAvailableSessionCommands(
+                        // Resync solo para trusted o Auto: no se expone a un ajeno no confiable.
+                        if (trusted || auto) {
+                            sessionCommands.buildUpon().add(SESSION_COMMAND_RESYNC).build()
+                        } else {
+                            sessionCommands
+                        },
+                    )
+                    .setAvailablePlayerCommands(playerCommands)
+                    .build()
             }
 
             override fun onCustomCommand(
@@ -176,21 +271,21 @@ class PlaybackService : MediaLibraryService() {
                 session: MediaLibrarySession,
                 browser: MediaSession.ControllerInfo,
                 mediaId: String,
-            ): ListenableFuture<LibraryResult<MediaItem>> {
-                // El default de onSubscribe pide el ítem para validar que sea
-                // navegable; sin esto, Android Auto rechaza la suscripción.
-                val item =
-                    when (mediaId) {
-                        LibraryTree.ROOT_ID -> LibraryTree.root(getString(R.string.app_name))
-                        else ->
-                            repository.snapshot().firstOrNull { it.id == mediaId }
-                                ?.let { LibraryTree.itemFor(this@PlaybackService, it) }
-                    }
-                return Futures.immediateFuture(
+            ): ListenableFuture<LibraryResult<MediaItem>> =
+                whenLoaded {
+                    // El default de onSubscribe pide el ítem para validar que sea
+                    // navegable; sin esto, Android Auto rechaza la suscripción.
+                    val item =
+                        when (mediaId) {
+                            LibraryTree.ROOT_ID -> LibraryTree.root(getString(R.string.app_name))
+                            LibraryTree.STATIONS_ID -> LibraryTree.stationsFolder(this@PlaybackService)
+                            else ->
+                                repository.snapshot().firstOrNull { it.id == mediaId }
+                                    ?.let { LibraryTree.itemFor(this@PlaybackService, it) }
+                        }
                     item?.let { LibraryResult.ofItem(it, null) }
-                        ?: LibraryResult.ofError(SessionError.ERROR_BAD_VALUE),
-                )
-            }
+                        ?: LibraryResult.ofError(SessionError.ERROR_BAD_VALUE)
+                }
 
             override fun onGetChildren(
                 session: MediaLibrarySession,
@@ -199,36 +294,77 @@ class PlaybackService : MediaLibraryService() {
                 page: Int,
                 pageSize: Int,
                 params: LibraryParams?,
-            ): ListenableFuture<LibraryResult<ImmutableList<MediaItem>>> {
-                val all =
-                    if (parentId == LibraryTree.ROOT_ID) {
-                        LibraryTree.children(this@PlaybackService, repository.snapshot())
-                    } else {
-                        emptyList()
-                    }
-                // Media3 valida que no se devuelvan más ítems que pageSize.
-                val pageItems = LibraryTree.page(all, page, pageSize)
-                return Futures.immediateFuture(
-                    LibraryResult.ofItemList(ImmutableList.copyOf(pageItems), params),
-                )
-            }
+            ): ListenableFuture<LibraryResult<ImmutableList<MediaItem>>> =
+                whenLoaded {
+                    val all = LibraryTree.children(this@PlaybackService, parentId, repository.snapshot())
+                    // Media3 valida que no se devuelvan más ítems que pageSize. Auto no
+                    // pagina: pide la lista completa (pageSize = Int.MAX_VALUE).
+                    val pageItems = LibraryTree.page(all, page, pageSize)
+                    LibraryResult.ofItemList(ImmutableList.copyOf(pageItems), params)
+                }
+
+            override fun onSearch(
+                session: MediaLibrarySession,
+                browser: MediaSession.ControllerInfo,
+                query: String,
+                params: LibraryParams?,
+            ): ListenableFuture<LibraryResult<Void>> =
+                whenLoaded {
+                    val count = LibraryTree.search(query, repository.snapshot()).size
+                    session.notifySearchResultChanged(browser, query, count, params)
+                    LibraryResult.ofVoid(params)
+                }
+
+            override fun onGetSearchResult(
+                session: MediaLibrarySession,
+                browser: MediaSession.ControllerInfo,
+                query: String,
+                page: Int,
+                pageSize: Int,
+                params: LibraryParams?,
+            ): ListenableFuture<LibraryResult<ImmutableList<MediaItem>>> =
+                whenLoaded {
+                    val matches = LibraryTree.search(query, repository.snapshot())
+                    val items =
+                        LibraryTree.page(matches, page, pageSize).map {
+                            RadioMedia.toMediaItem(it, this@PlaybackService)
+                        }
+                    LibraryResult.ofItemList(ImmutableList.copyOf(items), params)
+                }
 
             override fun onAddMediaItems(
                 session: MediaSession,
                 controller: MediaSession.ControllerInfo,
                 mediaItems: List<MediaItem>,
             ): ListenableFuture<List<MediaItem>> {
-                // Android Auto (bridge Media1) envía solo el mediaId del ítem
-                // seleccionado; hay que resolverlo al MediaItem completo con URI.
-                val radios = repository.snapshot()
-                val resolved =
-                    mediaItems.map { item ->
-                        radios.firstOrNull { it.id == item.mediaId }
-                            ?.let { RadioMedia.toMediaItem(it, this@PlaybackService) }
-                            ?: item
-                    }
-                return Futures.immediateFuture(resolved)
+                if (mediaItems.all { it.localConfiguration != null }) {
+                    return Futures.immediateFuture(mediaItems)
+                }
+                return whenLoaded {
+                    LibraryTree.resolve(
+                        this@PlaybackService,
+                        mediaItems,
+                        repository.snapshot(),
+                        repository.snapshotDefault(),
+                    )
+                }
             }
+
+            /**
+             * "Play" sin ítem cargado (botón del auto, notificación, auriculares):
+             * reproduce la radio por defecto. Lo pide el usuario, así que MA-1 se cumple.
+             */
+            override fun onPlaybackResumption(
+                mediaSession: MediaSession,
+                controller: MediaSession.ControllerInfo,
+                isForPlayback: Boolean,
+            ): ListenableFuture<MediaSession.MediaItemsWithStartPosition> =
+                whenLoaded {
+                    val default = repository.snapshotDefault()
+                    val items =
+                        listOfNotNull(default?.let { RadioMedia.toMediaItem(it, this@PlaybackService) })
+                    MediaSession.MediaItemsWithStartPosition(items, C.INDEX_UNSET, C.TIME_UNSET)
+                }
         }
 
     private val playerListener =
@@ -302,7 +438,7 @@ class PlaybackService : MediaLibraryService() {
         nowPlayingJob =
             serviceScope.launch {
                 while (isActive && session.player.currentMediaItem != null) {
-                    pollNowPlaying()
+                    pollNowPlayingSafely()
                     delay(
                         if (session.player.playWhenReady) {
                             NOW_PLAYING_POLL_MS
@@ -317,6 +453,17 @@ class PlaybackService : MediaLibraryService() {
     private fun currentRadio(): Radio? {
         val mediaId = session.player.currentMediaItem?.mediaId ?: return null
         return repository.snapshot().firstOrNull { it.id == mediaId }
+    }
+
+    /** La metadata en vivo es accesoria: un fallo no debe tumbar el proceso (scope sin handler). */
+    private suspend fun pollNowPlayingSafely() {
+        try {
+            pollNowPlaying()
+        } catch (e: CancellationException) {
+            throw e
+        } catch (e: Exception) {
+            Log.w(TAG, "No se pudo actualizar el ahora suena", e)
+        }
     }
 
     private suspend fun pollNowPlaying() {
@@ -394,7 +541,8 @@ class PlaybackService : MediaLibraryService() {
             }
     }
 
-    private fun classify(error: PlaybackException): PlaybackError {
+    /** Mapea un error de reproducción a la categoría que ve la UI. `internal` para tests. */
+    internal fun classify(error: PlaybackException): PlaybackError {
         var cause: Throwable? = error
         while (cause != null) {
             if (cause is HttpDataSource.InvalidResponseCodeException) {
@@ -418,6 +566,8 @@ class PlaybackService : MediaLibraryService() {
     }
 
     companion object {
+        private const val TAG = "PlaybackService"
+        private const val REPOSITORY_LOAD_TIMEOUT_MS = 5_000L
         private const val MAX_RETRIES = 3
         private const val RETRY_DELAY_MS = 5_000L
         private const val HTTP_UNAUTHORIZED = 401

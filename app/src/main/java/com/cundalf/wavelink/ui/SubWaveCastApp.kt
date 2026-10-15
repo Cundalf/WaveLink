@@ -4,8 +4,9 @@ import android.app.Activity
 import androidx.activity.compose.LocalActivity
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.consumeWindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.plus
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
@@ -16,7 +17,6 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -44,7 +44,8 @@ fun SubWaveCastApp(
     val error by viewModel.errorMessage.collectAsStateWithLifecycle()
     val nowPlaying by viewModel.nowPlaying.collectAsStateWithLifecycle()
     val requestState by viewModel.requestState.collectAsStateWithLifecycle()
-    val welcomeShown by viewModel.welcomeShown.collectAsState(initial = null)
+    val welcomeShown by viewModel.welcomeShown.collectAsStateWithLifecycle(initialValue = null)
+    val radiosLoaded by viewModel.radiosLoaded.collectAsStateWithLifecycle()
     val language by viewModel.language.collectAsStateWithLifecycle()
     val dialogs = remember { DialogStates() }
     val currentRadio = state.radios.firstOrNull { it.id == player.mediaId }
@@ -52,6 +53,7 @@ fun SubWaveCastApp(
 
     HomeScreen(
         radios = state.radios,
+        radiosLoaded = radiosLoaded,
         player = player,
         nowPlaying = nowPlaying,
         showNowPlaying = currentRadio?.showNowPlaying != false,
@@ -240,7 +242,7 @@ private fun AppOverlays(
 // Pantalla principal
 // ---------------------------------------------------------------------------
 
-private class HomeActions(
+internal class HomeActions(
     val onPlayRadio: (Radio) -> Unit,
     val onAddRadio: () -> Unit,
     val onEditRadio: (Radio) -> Unit,
@@ -255,6 +257,7 @@ private class HomeActions(
 @Composable
 private fun HomeScreen(
     radios: List<Radio>,
+    radiosLoaded: Boolean,
     player: PlaybackUiState,
     nowPlaying: NowPlaying?,
     showNowPlaying: Boolean,
@@ -290,43 +293,46 @@ private fun HomeScreen(
     ) { padding ->
         RadioList(
             radios = radios,
+            radiosLoaded = radiosLoaded,
             player = player,
             nowPlaying = nowPlaying,
             showNowPlaying = showNowPlaying,
             actions = actions,
-            modifier =
-                Modifier
-                    .fillMaxSize()
-                    .padding(padding),
+            contentPadding = padding,
+            modifier = Modifier.fillMaxSize(),
         )
     }
 }
 
 @Composable
-private fun RadioList(
+internal fun RadioList(
     radios: List<Radio>,
+    radiosLoaded: Boolean,
     player: PlaybackUiState,
     nowPlaying: NowPlaying?,
     showNowPlaying: Boolean,
     actions: HomeActions,
+    contentPadding: PaddingValues,
     modifier: Modifier = Modifier,
 ) {
     LazyColumn(
-        modifier = modifier,
-        contentPadding = PaddingValues(16.dp),
+        modifier = modifier.consumeWindowInsets(contentPadding),
+        contentPadding = contentPadding + PaddingValues(16.dp),
         verticalArrangement = Arrangement.spacedBy(12.dp),
     ) {
         if (showNowPlaying) {
-            item {
+            item(contentType = "header_now_playing") {
                 Text(
                     text = stringResource(R.string.ahora_suena),
                     style = MaterialTheme.typography.labelMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
             }
-            item { NowPlayingCard(nowPlaying = nowPlaying, hasRadio = player.mediaId != null) }
+            item(contentType = "now_playing_card") {
+                NowPlayingCard(nowPlaying = nowPlaying, hasRadio = player.mediaId != null)
+            }
         }
-        item {
+        item(contentType = "header_radios") {
             Text(
                 text = stringResource(R.string.radios),
                 style = MaterialTheme.typography.titleLarge,
@@ -334,9 +340,11 @@ private fun RadioList(
             )
         }
         if (radios.isEmpty()) {
-            item { EmptyRadiosState(onAddRadio = actions.onAddRadio) }
+            if (radiosLoaded) {
+                item(contentType = "empty_radios") { EmptyRadiosState(onAddRadio = actions.onAddRadio) }
+            }
         } else {
-            items(radios, key = { it.id }) { radio ->
+            items(radios, key = { it.id }, contentType = { "radio" }) { radio ->
                 RadioCard(
                     radio = radio,
                     isCurrent = player.mediaId == radio.id,

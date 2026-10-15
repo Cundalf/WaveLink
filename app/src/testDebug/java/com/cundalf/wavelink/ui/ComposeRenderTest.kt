@@ -1,5 +1,6 @@
 package com.cundalf.wavelink.ui
 
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertIsEnabled
 import androidx.compose.ui.test.assertIsNotEnabled
@@ -8,6 +9,7 @@ import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performScrollTo
 import androidx.compose.ui.test.performTextInput
+import androidx.compose.ui.unit.dp
 import androidx.media3.common.Player
 import com.cundalf.wavelink.R
 import com.cundalf.wavelink.data.NowPlaying
@@ -155,6 +157,39 @@ class ComposeRenderTest {
         compose.onNodeWithText(str(R.string.conexion_401)).performScrollTo().assertIsDisplayed()
     }
 
+    @Test
+    fun radioEditorRejectsUrlWithoutHost() {
+        compose.setContent {
+            SubWaveCastTheme {
+                RadioEditorContent(
+                    radio = null,
+                    testStation = { _, _ -> StationTest.Failed },
+                    onSave = { _, _, _, _, _ -> },
+                )
+            }
+        }
+        compose.onNodeWithText(str(R.string.url_stream)).performTextInput("http://")
+        compose.onNodeWithText(str(R.string.error_url_host)).assertIsDisplayed()
+        compose.onNodeWithText(str(R.string.probar)).assertIsNotEnabled()
+    }
+
+    @Test
+    fun radioEditorWarnsAboutUnencryptedHttpUrl() {
+        compose.setContent {
+            SubWaveCastTheme {
+                RadioEditorContent(
+                    radio = null,
+                    testStation = { _, _ -> StationTest.Failed },
+                    onSave = { _, _, _, _, _ -> },
+                )
+            }
+        }
+        compose
+            .onNodeWithText(str(R.string.url_stream))
+            .performTextInput("http://radio.example.com/stream.mp3")
+        compose.onNodeWithText(str(R.string.conexion_sin_cifrado)).assertIsDisplayed()
+    }
+
     // -----------------------------------------------------------------------
     // Hoja de pedido a la cabina
     // -----------------------------------------------------------------------
@@ -220,6 +255,46 @@ class ComposeRenderTest {
     }
 
     // -----------------------------------------------------------------------
+    // Lista de radios
+    // -----------------------------------------------------------------------
+
+    @Test
+    fun radioListHidesEmptyStateWhileDataStoreHasNotLoaded() {
+        compose.setContent {
+            SubWaveCastTheme {
+                RadioList(
+                    radios = emptyList(),
+                    radiosLoaded = false,
+                    player = idlePlayer(),
+                    nowPlaying = null,
+                    showNowPlaying = false,
+                    actions = emptyActions(),
+                    contentPadding = PaddingValues(0.dp),
+                )
+            }
+        }
+        compose.onNodeWithText(str(R.string.sin_radios)).assertDoesNotExist()
+    }
+
+    @Test
+    fun radioListShowsEmptyStateOnceLoaded() {
+        compose.setContent {
+            SubWaveCastTheme {
+                RadioList(
+                    radios = emptyList(),
+                    radiosLoaded = true,
+                    player = idlePlayer(),
+                    nowPlaying = null,
+                    showNowPlaying = false,
+                    actions = emptyActions(),
+                    contentPadding = PaddingValues(0.dp),
+                )
+            }
+        }
+        compose.onNodeWithText(str(R.string.sin_radios)).performScrollTo().assertIsDisplayed()
+    }
+
+    // -----------------------------------------------------------------------
     // Reproductor completo
     // -----------------------------------------------------------------------
 
@@ -270,5 +345,18 @@ class ComposeRenderTest {
             playbackState = Player.STATE_READY,
             mediaId = "radio-1",
             title = "Mi Radio",
+        )
+
+    private fun emptyActions() =
+        HomeActions(
+            onPlayRadio = {},
+            onAddRadio = {},
+            onEditRadio = {},
+            onDeleteRadio = {},
+            onSetDefault = {},
+            onExpandPlayer = {},
+            onPlayPause = {},
+            onResync = {},
+            onOpenSettings = {},
         )
 }

@@ -68,4 +68,42 @@ class RadioJsonTest {
         assertEquals(1, decoded.size)
         assertEquals(null, decoded.first().password)
     }
+
+    @Test
+    fun entriesWithoutIdAreDiscarded() {
+        val json =
+            """
+            [
+              {"id":"","nombre":"Sin id","url":"https://a.example/stream.mp3","default":false},
+              {"nombre":"Sin campo id","url":"https://b.example/stream.mp3","default":false},
+              {"id":"   ","nombre":"Id en blanco","url":"https://c.example/stream.mp3","default":false},
+              {"id":"ok","nombre":"Válida","url":"https://d.example/stream.mp3","password":"p",
+               "default":true,"showNowPlaying":false,"allowRequests":true}
+            ]
+            """.trimIndent()
+        val decoded = RadioJson.decode(json)
+        assertEquals(
+            listOf(Radio("ok", "Válida", "https://d.example/stream.mp3", "p", true, false, true)),
+            decoded,
+        )
+    }
+
+    @Test
+    fun entriesWithoutUrlAreDiscarded() {
+        val json =
+            """
+            [
+              {"id":"a","nombre":"Sin url","url":"","default":false},
+              {"id":"b","nombre":"Sin campo url","default":false},
+              {"id":"c","nombre":"Url en blanco","url":"   ","default":false},
+              {"id":"ok","nombre":"Válida","url":"https://d.example/stream.mp3","password":"p",
+               "default":false,"showNowPlaying":false,"allowRequests":true}
+            ]
+            """.trimIndent()
+        val decoded = RadioJson.decode(json)
+        assertEquals(
+            listOf(Radio("ok", "Válida", "https://d.example/stream.mp3", "p", false, false, true)),
+            decoded,
+        )
+    }
 }

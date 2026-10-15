@@ -2,6 +2,7 @@ package com.cundalf.wavelink.playback
 
 import androidx.media3.cast.DefaultMediaItemConverter
 import androidx.media3.common.MediaMetadata
+import androidx.media3.common.MimeTypes
 import com.cundalf.wavelink.data.NowPlaying
 import com.cundalf.wavelink.data.Radio
 import org.junit.Assert.assertEquals
@@ -83,6 +84,32 @@ class RadioMediaTest {
         assertTrue(item.mediaMetadata.isPlayable == true)
     }
 
+    /**
+     * Regresión: el MIME fijo `audio/mpeg` rompía HLS/DASH (ExoPlayer elegía
+     * el extractor progresivo y la radio no sonaba) y el tipo del receiver Cast.
+     */
+    @Test
+    fun mediaItemMimeTypeFollowsStreamExtension() {
+        val app = org.robolectric.RuntimeEnvironment.getApplication()
+
+        fun mime(url: String) = RadioMedia.toMediaItem(radio(url), app).localConfiguration?.mimeType
+
+        assertEquals(MimeTypes.APPLICATION_M3U8, mime("https://radio.example.com/live.m3u8"))
+        assertEquals(MimeTypes.APPLICATION_MPD, mime("https://radio.example.com/live.mpd"))
+        assertEquals(MimeTypes.AUDIO_AAC, mime("https://radio.example.com/live.aac"))
+        assertEquals(MimeTypes.AUDIO_OGG, mime("https://radio.example.com/live.ogg"))
+        assertEquals(MimeTypes.AUDIO_OPUS, mime("https://radio.example.com/live.opus"))
+        assertEquals(MimeTypes.AUDIO_MPEG, mime("https://radio.example.com/live.mp3"))
+        assertEquals(MimeTypes.AUDIO_MPEG, mime("https://radio.example.com/stream"))
+    }
+
+    @Test
+    fun mimeTypeIsCaseInsensitiveAndIgnoresQueryString() {
+        assertEquals(MimeTypes.APPLICATION_M3U8, RadioMedia.mimeTypeFor("https://radio.example.com/LIVE.M3U8?token=x"))
+        assertEquals(MimeTypes.AUDIO_OGG, RadioMedia.mimeTypeFor("https://radio.example.com/live.ogg#frag"))
+        assertEquals(MimeTypes.AUDIO_MPEG, RadioMedia.mimeTypeFor("  https://radio.example.com/stream  "))
+    }
+
     @Test
     fun mediaItemEmbedsArtworkDataForNotificationsAndAuto() {
         val item =
@@ -162,7 +189,19 @@ class RadioMediaTest {
         // Identidad del ítem intacta: ExoPlayer reutiliza el media source.
         assertEquals(item.mediaId, updated.mediaId)
         assertEquals(item.localConfiguration?.uri, updated.localConfiguration?.uri)
+        // Media3 prioriza artworkData sobre artworkUri: sin limpiar el ícono
+        // embebido la portada en vivo nunca se mostraría.
+        assertNull(updated.mediaMetadata.artworkData)
+    }
+
+    @Test
+    fun withNowPlayingWithoutCoverKeepsEmbeddedArtwork() {
+        val app = org.robolectric.RuntimeEnvironment.getApplication()
+        val station = radio("https://radio.example.com/stream.mp3")
+        val item = RadioMedia.toMediaItem(station, app)
+        val updated = RadioMedia.withNowPlaying(item, station, NowPlaying(title = "Un tema"))
         assertTrue(updated.mediaMetadata.artworkData != null)
+        assertNull(updated.mediaMetadata.artworkUri)
     }
 
     @Test

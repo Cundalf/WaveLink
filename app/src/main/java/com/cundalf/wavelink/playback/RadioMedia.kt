@@ -42,7 +42,7 @@ object RadioMedia {
             // Sin MIME/tipo, DefaultMediaItemConverter asume MEDIA_TYPE_MOVIE y
             // el receiver muestra un "video" negro con audio. Declarar la radio
             // como música/estación evita la pantalla negra.
-            .setMimeType(MIME_AUDIO)
+            .setMimeType(mimeTypeFor(radio.streamUrl))
             // Marca el stream como vivo para Cast (streamType=LIVE) y fija la
             // velocidad a 1x: la radio nunca "acelera" para alcanzar el vivo.
             .setLiveConfiguration(LIVE_CONFIGURATION)
@@ -70,7 +70,8 @@ object RadioMedia {
      * Reconstruye el ítem con la metadata en vivo (título/artista/portada) para
      * que Android Auto, la notificación y la sesión de medios la muestren. El
      * nombre de la radio viaja en `subtitle` para no perder el contexto de la
-     * estación, y se conserva el artwork embebido como fallback del ícono.
+     * estación. Con portada se limpia el ícono embebido (Media3 prioriza
+     * artworkData sobre artworkUri); sin portada se conserva el ícono.
      */
     fun withNowPlaying(
         item: MediaItem,
@@ -78,18 +79,44 @@ object RadioMedia {
         nowPlaying: NowPlaying,
     ): MediaItem {
         val track = nowPlaying.title?.takeIf { it.isNotBlank() }
+        val cover = nowPlaying.coverUrl?.takeIf { it.isNotBlank() }?.toUri()
         val metadata =
             item.mediaMetadata
                 .buildUpon()
                 .setTitle(track ?: radio.nombre)
                 .setArtist(nowPlaying.artist?.takeIf { it.isNotBlank() } ?: BRAND)
                 .setSubtitle(track?.let { radio.nombre })
-                .setArtworkUri(nowPlaying.coverUrl?.toUri())
+                .apply {
+                    if (cover != null) {
+                        setArtworkData(null, MediaMetadata.PICTURE_TYPE_FRONT_COVER)
+                        setArtworkUri(cover)
+                    } else {
+                        setArtworkUri(null)
+                    }
+                }
                 .build()
         return item.buildUpon().setMediaMetadata(metadata).build()
     }
 
-    private fun artworkPng(context: Context): ByteArray {
+    /**
+     * MIME según la extensión de la URL del stream: HLS/DASH/AAC/OGG necesitan su
+     * tipo real para que ExoPlayer y Cast elijan el extractor correcto (con
+     * `audio/mpeg` fijo las radios HLS no suenan).
+     */
+    internal fun mimeTypeFor(streamUrl: String): String {
+        val path = streamUrl.trim().substringBefore('?').substringBefore('#').lowercase()
+        return when {
+            path.endsWith(".m3u8") -> MimeTypes.APPLICATION_M3U8
+            path.endsWith(".mpd") -> MimeTypes.APPLICATION_MPD
+            path.endsWith(".aac") -> MimeTypes.AUDIO_AAC
+            path.endsWith(".ogg") -> MimeTypes.AUDIO_OGG
+            path.endsWith(".opus") -> MimeTypes.AUDIO_OPUS
+            else -> MimeTypes.AUDIO_MPEG
+        }
+    }
+
+    /** PNG del ícono de la app, cacheado: se embebe como miniatura de cada ítem. */
+    fun artworkPng(context: Context): ByteArray {
         artworkBytes?.let { return it }
         val bytes =
             runCatching {
@@ -108,8 +135,10 @@ object RadioMedia {
         }
 
     private const val BRAND = "WaveLink"
-    private const val MIME_AUDIO = MimeTypes.AUDIO_MPEG
-    private const val ARTWORK_SIZE_PX = 512
+
+    // Media3 decodifica cada miniatura a bitmap al listar: 256 px (~256 KB) basta para
+    // Android Auto y evita ~1 MB por radio en el servicio.
+    private const val ARTWORK_SIZE_PX = 256
     private const val PNG_QUALITY = 100
     private const val LIVE_PLAYBACK_SPEED = 1f
 

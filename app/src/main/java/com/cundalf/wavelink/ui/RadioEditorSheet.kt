@@ -5,8 +5,6 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.imePadding
-import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.sizeIn
@@ -40,6 +38,8 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.saveable.listSaver
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -105,9 +105,7 @@ internal fun RadioEditorContent(
                 .fillMaxWidth()
                 .verticalScroll(rememberScrollState())
                 .padding(horizontal = 24.dp)
-                .padding(bottom = 24.dp)
-                .imePadding()
-                .navigationBarsPadding(),
+                .padding(bottom = 24.dp),
         verticalArrangement = Arrangement.spacedBy(10.dp),
     ) {
         Text(
@@ -116,7 +114,7 @@ internal fun RadioEditorContent(
         )
 
         val formState =
-            remember(radio) {
+            rememberSaveable(radio, saver = RadioFormStateSaver) {
                 RadioFormState().also {
                     it.nombre = radio?.nombre ?: ""
                     it.url = radio?.streamUrl ?: ""
@@ -130,11 +128,13 @@ internal fun RadioEditorContent(
         val scope = rememberCoroutineScope()
 
         val urlError = rememberUrlError(formState.url)
+        val insecureUrl = formState.url.isInsecureStreamUrl()
         val canSave = formState.nombre.isNotBlank() && formState.url.isNotBlank() && urlError == null
 
         RadioFormFields(
             formState = formState,
             urlError = urlError,
+            insecureUrl = insecureUrl,
             testResult = testResult,
             onUrlChange = {
                 formState.url = it
@@ -196,21 +196,29 @@ private fun supportTextForRequests(available: Boolean?): String? =
         false -> stringResource(R.string.conexion_pedidos_no)
     }
 
+private enum class UrlErrorKind { SCHEME, HOST }
+
+private fun urlErrorKind(url: String): UrlErrorKind? {
+    val trimmed = url.trim()
+    if (trimmed.isBlank()) return null
+    val uri = runCatching { trimmed.toUri() }.getOrNull() ?: return UrlErrorKind.SCHEME
+    val scheme = uri.scheme
+    if (scheme != "http" && scheme != "https") return UrlErrorKind.SCHEME
+    if (uri.host.isNullOrBlank()) return UrlErrorKind.HOST
+    return null
+}
+
+internal fun String.isInsecureStreamUrl(): Boolean = trim().startsWith("http://", ignoreCase = true)
+
 @Composable
 private fun rememberUrlError(url: String): String? {
     val errorUrlMessage = stringResource(R.string.error_url)
-    return remember(url, errorUrlMessage) {
-        val trimmed = url.trim()
-        val scheme =
-            if (trimmed.isBlank()) {
-                null
-            } else {
-                runCatching { trimmed.toUri().scheme }.getOrNull()
-            }
-        when {
-            trimmed.isBlank() -> null
-            scheme == "http" || scheme == "https" -> null
-            else -> errorUrlMessage
+    val errorUrlHostMessage = stringResource(R.string.error_url_host)
+    return remember(url, errorUrlMessage, errorUrlHostMessage) {
+        when (urlErrorKind(url)) {
+            null -> null
+            UrlErrorKind.SCHEME -> errorUrlMessage
+            UrlErrorKind.HOST -> errorUrlHostMessage
         }
     }
 }
@@ -219,6 +227,7 @@ private fun rememberUrlError(url: String): String? {
 private fun RadioFormFields(
     formState: RadioFormState,
     urlError: String?,
+    insecureUrl: Boolean,
     testResult: StationTest?,
     onUrlChange: (String) -> Unit,
     onTest: () -> Unit,
@@ -243,12 +252,18 @@ private fun RadioFormFields(
                 label = { Text(stringResource(R.string.url_stream)) },
                 supportingText = {
                     Text(
-                        text = urlError ?: stringResource(R.string.url_ayuda),
+                        text =
+                            urlError
+                                ?: if (insecureUrl) {
+                                    stringResource(R.string.conexion_sin_cifrado)
+                                } else {
+                                    stringResource(R.string.url_ayuda)
+                                },
                         color =
-                            if (urlError != null) {
-                                MaterialTheme.colorScheme.error
-                            } else {
-                                MaterialTheme.colorScheme.onSurfaceVariant
+                            when {
+                                urlError != null -> MaterialTheme.colorScheme.error
+                                insecureUrl -> MaterialTheme.colorScheme.tertiary
+                                else -> MaterialTheme.colorScheme.onSurfaceVariant
                             },
                     )
                 },
@@ -431,3 +446,20 @@ private class RadioFormState {
     var showNowPlaying by mutableStateOf(true)
     var allowRequests by mutableStateOf(false)
 }
+
+private val RadioFormStateSaver =
+    listSaver<RadioFormState, Any>(
+        save = {
+            listOf(it.nombre, it.url, it.password, it.showPassword, it.showNowPlaying, it.allowRequests)
+        },
+        restore = { values ->
+            RadioFormState().also {
+                it.nombre = values[0] as String
+                it.url = values[1] as String
+                it.password = values[2] as String
+                it.showPassword = values[3] as Boolean
+                it.showNowPlaying = values[4] as Boolean
+                it.allowRequests = values[5] as Boolean
+            }
+        },
+    )

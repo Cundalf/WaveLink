@@ -22,12 +22,18 @@ import androidx.compose.runtime.setValue
 import androidx.core.content.ContextCompat
 import androidx.fragment.app.FragmentActivity
 import androidx.lifecycle.ViewModelProvider
+import androidx.lifecycle.lifecycleScope
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.cundalf.wavelink.data.LocaleHelper
+import com.cundalf.wavelink.data.RadioRepository
+import com.cundalf.wavelink.playback.LibraryTree
 import com.cundalf.wavelink.ui.PlayerViewModel
 import com.cundalf.wavelink.ui.SubWaveCastApp
 import com.cundalf.wavelink.ui.SubWaveCastTheme
 import kotlinx.coroutines.flow.collect
+import kotlinx.coroutines.flow.filterNotNull
+import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.launch
 
 class MainActivity : FragmentActivity() {
     override fun attachBaseContext(newBase: Context) {
@@ -42,6 +48,11 @@ class MainActivity : FragmentActivity() {
             statusBarStyle = SystemBarStyle.dark(android.graphics.Color.TRANSPARENT),
             navigationBarStyle = SystemBarStyle.dark(android.graphics.Color.TRANSPARENT),
         )
+        // Después de enableEdgeToEdge: el scrim de contraste de la barra de
+        // navegación ensucia los paneles OLED.
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+            window.isNavigationBarContrastEnforced = false
+        }
         setContent {
             SubWaveCastTheme {
                 val viewModel: PlayerViewModel = viewModel()
@@ -92,20 +103,24 @@ class MainActivity : FragmentActivity() {
 
     /**
      * MEDIA_PLAY_FROM_SEARCH (Android Auto / asistente): reproduce la radio que
-     * matchea el query por nombre, o la por defecto si no hay match.
+     * matchea el query por nombre, o la por defecto si no hay match. En el arranque
+     * en frío el intent llega antes de que el controller y las radios estén listos:
+     * sin esta espera playRadio era un no-op silencioso (carrera).
      */
     private fun handleMediaSearch(intent: Intent?) {
         if (intent?.action != MediaStore.INTENT_ACTION_MEDIA_PLAY_FROM_SEARCH) return
         val query = intent.getStringExtra(SEARCH_QUERY_EXTRA)
         val viewModel = ViewModelProvider(this)[PlayerViewModel::class.java]
-        val radios = viewModel.state.value.radios
-        val matched =
-            query?.let { q ->
-                val byName = radios.firstOrNull { it.nombre.equals(q, ignoreCase = true) }
-                byName ?: radios.firstOrNull { it.nombre.contains(q, ignoreCase = true) }
-            }
-        (matched ?: viewModel.state.value.default)?.let { viewModel.playRadio(it) }
+        lifecycleScope.launch {
+            viewModel.controller.filterNotNull().first()
+            val state = viewModel.state.first { radioRepository.isLoaded }
+            val target = LibraryTree.selectForSearch(query, state.radios, state.default) ?: return@launch
+            viewModel.playRadio(target)
+        }
     }
+
+    private val radioRepository: RadioRepository
+        get() = (application as SubWaveCastApplication).radioRepository
 
     private fun isCarMode(context: Context): Boolean {
         val uiModeManager = context.getSystemService(Context.UI_MODE_SERVICE) as? UiModeManager

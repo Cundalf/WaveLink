@@ -8,6 +8,7 @@ import com.cundalf.wavelink.playback.RadioMedia
 import kotlinx.coroutines.withContext
 import kotlinx.coroutines.withTimeoutOrNull
 import org.json.JSONObject
+import java.io.InputStream
 import java.net.HttpURLConnection
 import java.net.URL
 
@@ -56,10 +57,16 @@ sealed interface StationTest {
 object SubWaveApi {
     private const val TEST_TIMEOUT_MS = 20_000L
     private const val COVER_TIMEOUT_MS = 5_000
-    private const val MAX_COVER_CACHE = 12
+    private const val COVER_CACHE_BYTES = 8 * 1024 * 1024
     private const val API_NOW_PLAYING = "/api/now-playing"
 
-    private val coverCache = LruCache<String, Bitmap>(MAX_COVER_CACHE)
+    private val coverCache =
+        object : LruCache<String, Bitmap>(COVER_CACHE_BYTES) {
+            override fun sizeOf(
+                key: String,
+                value: Bitmap,
+            ): Int = value.byteCount
+        }
 
     fun apiBase(streamUrl: String): String? {
         val uri = runCatching { streamUrl.trim().toUri() }.getOrNull() ?: return null
@@ -177,7 +184,7 @@ object SubWaveApi {
                         if (!isOk(conn.responseCode)) {
                             null
                         } else {
-                            BitmapFactory.decodeStream(conn.inputStream)
+                            conn.inputStream.use { decodeCover(it) }
                         }
                     } finally {
                         conn.disconnect()
@@ -211,4 +218,29 @@ object SubWaveApi {
     private val HTTP_OK_RANGE = HTTP_OK_MIN..HTTP_OK_MAX
     private const val HTTP_UNAUTHORIZED = 401
     private const val HTTP_FORBIDDEN = 403
+}
+
+private const val COVER_MAX_EDGE_PX = 512
+
+private fun decodeCover(stream: InputStream): Bitmap? {
+    val bytes = stream.readBytes()
+    val bounds = BitmapFactory.Options().apply { inJustDecodeBounds = true }
+    BitmapFactory.decodeByteArray(bytes, 0, bytes.size, bounds)
+    val options =
+        BitmapFactory.Options().apply {
+            inSampleSize = coverSampleSize(bounds.outWidth, bounds.outHeight)
+        }
+    return BitmapFactory.decodeByteArray(bytes, 0, bytes.size, options)
+}
+
+private fun coverSampleSize(
+    width: Int,
+    height: Int,
+): Int {
+    if (width <= 0 || height <= 0) return 1
+    var sampleSize = 1
+    while (width / (sampleSize * 2) >= COVER_MAX_EDGE_PX || height / (sampleSize * 2) >= COVER_MAX_EDGE_PX) {
+        sampleSize *= 2
+    }
+    return sampleSize
 }

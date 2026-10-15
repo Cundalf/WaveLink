@@ -47,6 +47,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
+import androidx.core.net.toUri
 import com.cundalf.wavelink.R
 import com.cundalf.wavelink.data.NowPlaying
 import com.cundalf.wavelink.data.Radio
@@ -231,7 +232,7 @@ private fun RadioCardLead(
     Row(
         modifier =
             modifier.clickable(
-                onClickLabel = "${stringResource(R.string.play)}: ${radio.nombre}",
+                onClickLabel = stringResource(R.string.reproducir_radio, radio.nombre),
                 onClick = onPlay,
             ),
         verticalAlignment = Alignment.CenterVertically,
@@ -280,7 +281,7 @@ private fun RadioCardLead(
                 }
             }
             Text(
-                text = radio.streamUrl,
+                text = sanitizedStreamUrl(radio.streamUrl),
                 style = MaterialTheme.typography.labelSmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                 maxLines = 1,
@@ -343,6 +344,17 @@ internal fun EmptyRadiosState(onAddRadio: () -> Unit) {
             Text(stringResource(R.string.agregar_radio))
         }
     }
+}
+
+/** URL sin credenciales embebidas (`user:pass@host`), para mostrar en la tarjeta. */
+internal fun sanitizedStreamUrl(url: String): String {
+    val trimmed = url.trim()
+    val uri = runCatching { trimmed.toUri() }.getOrNull() ?: return trimmed
+    val encodedUserInfo = uri.encodedUserInfo ?: return trimmed
+    val encodedAuthority = uri.encodedAuthority ?: return trimmed
+    val sanitizedAuthority = encodedAuthority.removePrefix("$encodedUserInfo@")
+    if (sanitizedAuthority == encodedAuthority) return trimmed
+    return uri.buildUpon().encodedAuthority(sanitizedAuthority).build().toString()
 }
 
 private val CoverShape = RoundedCornerShape(16.dp)

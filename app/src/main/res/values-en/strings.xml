@@ -5,6 +5,7 @@
     <string name="ahora_suena">Now playing</string>
     <string name="conectando">Connecting…</string>
     <string name="reproduciendo">Playing</string>
+    <string name="reproduciendo_track">Playing · %1$s</string>
     <string name="pausado">Paused</string>
     <string name="reconectando">Reconnecting…</string>
 
@@ -23,6 +24,7 @@
     <string name="nombre_ayuda">A short name to recognize it in the list</string>
     <string name="url_stream">Stream URL</string>
     <string name="url_ayuda">The stream address, for example https://radio.example.com/stream.mp3</string>
+    <string name="conexion_sin_cifrado">Unencrypted connection: the network could see your traffic</string>
     <string name="contrasena_opcional">Password (optional)</string>
     <string name="contrasena_ayuda">Only if your SUB/WAVE station requires a listener password</string>
     <string name="guardar">Save</string>
@@ -45,6 +47,7 @@
     <string name="pedidos_cabina">Booth requests</string>
 
     <string name="play">Play</string>
+    <string name="reproducir_radio">Play: %1$s</string>
     <string name="pause">Pause</string>
     <string name="ampliar_reproductor">Expand player</string>
     <string name="sincronizar">Sync</string>
@@ -54,7 +57,9 @@
     <string name="error_red">Could not connect to the stream.</string>
     <string name="error_stream">Could not play the stream.</string>
     <string name="error_url">The URL must start with http:// or https://</string>
+    <string name="error_url_host">The URL does not point to any server. Check the domain or IP.</string>
     <string name="cast_activo">Casting to a device</string>
+    <string name="cast_activo_detalle">%1$s — %2$s</string>
     <string name="control_remoto">Remote control</string>
 
     <string name="sintoniza_para_ver">Tune in to a radio to see what\'s playing</string>
@@ -68,6 +73,7 @@
     <string name="espanol">Español</string>
     <string name="ingles">English</string>
     <string name="en_el_aire">On air</string>
+    <string name="en_el_aire_dj">%1$s — %2$s</string>
     <string name="a_continuacion">Up next: %1$s</string>
     <plurals name="listeners_count">
         <item quantity="one">%1$d listener</item>
@@ -80,6 +86,7 @@
     <string name="pedido_ayuda">Type what you want to hear. The DJ looks it up in the library and queues it if it finds a match.</string>
     <string name="pedido_texto">Your request</string>
     <string name="pedido_texto_ejemplo">A Radiohead track or something more upbeat…</string>
+    <string name="pedido_contador">%1$d/%2$d</string>
     <string name="pedido_nombre">Your name (optional)</string>
     <string name="pedido_enviar">Send request</string>
     <string name="pedido_enviando">Sending…</string>

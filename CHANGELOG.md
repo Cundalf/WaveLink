@@ -3,6 +3,52 @@
 Formato basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/).
 Versionado [SemVer](https://semver.org/lang/es/).
 
+## [0.3.1] — versionCode 6 — 2026-10-15
+
+### Corregido
+- **El teléfono no reproducía nada (regresión de 0.3.0).** El `onConnect` del servicio otorgaba comandos vacíos al controlador, así que "Play" (lista, mini reproductor, notificación, controles del sistema) no hacía nada. Ahora cada controlador recibe sus comandos por defecto más el de "Sincronizar". Además, si Android Auto llega como controlador no confiable (dispositivos donde gearhead no es privilegiado) recibe igualmente los comandos completos, y "Sincronizar" ya no se expone a controladores ajenos no confiables.
+- **Android Auto: sin contenido.** Las radios colgaban directamente de la raíz y Auto solo acepta carpetas navegables en el primer nivel. Ahora la raíz contiene la carpeta "Radios" y dentro están las radios.
+- **Android Auto: lista vacía al arrancar.** Auto ya no recibe la biblioteca antes de que DataStore lea las radios (la carga se espera con timeout y se notifica al completarse), y se actualiza sola al agregar, editar o borrar una radio.
+- **Android Auto: búsqueda en la biblioteca.** Ahora responde a la búsqueda del auto (`onSearch`/`onGetSearchResult`), con resultados paginados contra las radios guardadas.
+- **"Reproducir" sin selección** en Android Auto y en los controles del sistema reproduce la radio por defecto, sin autoplay al conectar (MA-1).
+- **Android Auto: búsqueda por voz y radios sin resolver.** Una búsqueda ("reproducí X en WaveLink") o un `mediaId` que todavía no estaba cargado llegaba a ExoPlayer sin URI: la radio no sonaba (`NullPointerException`). Ahora cada pedido se resuelve contra las radios (nombre exacto, luego parcial, o la radio por defecto) o se descarta. La misma resolución se usa para el intent del asistente en el teléfono, esperando el arranque en frío (antes se perdía por una carrera).
+- **Radios HLS/DASH/AAC/OGG/Opus.** El MIME estaba fijo en `audio/mpeg` y las estaciones con playlist (`.m3u8`, `.mpd`…) no sonaban ni en teléfono ni en Cast. Ahora el MIME se deriva de la URL del stream.
+- **Portada del "ahora suena" en teléfono, auto y notificación.** El ícono embebido tapaba la portada en vivo (Media3 prioriza `artworkData` sobre `artworkUri`); ahora la portada reemplaza al ícono y, sin portada, se conserva el ícono.
+- **La notificación de medios ahora abre la app** al tocarla (`setSessionActivity`).
+- **Cast:** al reanudar con una sesión activa ya no arranca la reproducción solo; al desconectar el cast sigue sonando la radio que estaba en el TV (antes volvía la anterior); y al recrear el servicio con un cast activo se detecta la sesión (evita doble audio).
+- **Archivo de radios corrupto:** se recupera automáticamente (antes el flujo de datos moría en silencio hasta reiniciar). Las radios guardadas sin id o sin URL se descartan al leer.
+- **UI/rendimiento:** animaciones sin recomponer por frame; las portadas se decodifican al tamaño mostrado (≤512 px) con caché por bytes (evita OOM); listas a pantalla completa (contentPadding edge-to-edge); el teclado ya no tapa los formularios (hojas con insets correctos); sin flash de "todavía no tenés radios" antes de cargar.
+- **Accesibilidad:** selector de idioma con foco único y rol correcto; botón principal de reproducción con rol de botón; aviso visible cuando la URL es `http://` ("conexión sin cifrado"); validación de host al guardar; la URL se muestra sin credenciales en la tarjeta.
+- **Seguridad de dependencias:** DataStore 1.1.1 → 1.1.7 (CVE-2024-7254, DoS al parsear datos corruptos) y Media3 1.11.0 → 1.11.1.
+
+### Interno
+- Tests: 61 → **101** (regresión de servicio: comandos de `onConnect`, browse tree en frío, MA-1, resolución de `mediaId`; repositorio con DataStore real y corrupción; búsqueda; MIME por extensión; presupuesto del cover de Cast).
+- Miniatura embebida de 256 px (antes 512 px): menos memoria por ítem al listar en el auto.
+- Manifest: el servicio declara también la acción `androidx.media3.session.MediaLibraryService`, `adjustResize` para el teclado y sin scrim de contraste en la barra de navegación (OLED).
+- Log de diagnóstico por conexión (`pkg`, `trusted`, `auto`) para depurar Auto en campo.
+
+### English
+
+#### Fixed
+- **The phone played nothing (0.3.0 regression).** The service's `onConnect` granted empty commands to controllers, so "Play" did nothing. Each controller now gets its default commands plus "Sync". Android Auto controllers that are not trusted (devices where gearhead is unprivileged) now also get full commands, and "Sync" is no longer exposed to untrusted third-party controllers.
+- **Android Auto: no content.** Radios were direct children of the root; Auto only accepts browsable folders at the first level. The root now contains the "Radios" folder.
+- **Android Auto: empty list on cold start.** The library is not answered before DataStore finishes loading (waits with timeout and notifies when loaded) and refreshes on radio changes.
+- **Android Auto: library search** now responds (`onSearch`/`onGetSearchResult`) with paginated results over the saved radios.
+- **"Play" without selection** loads the default radio, with no autoplay on connect (MA-1).
+- **Voice search / unresolved media ids** no longer reach ExoPlayer without a URI (silent `NullPointerException`): items resolve by exact/partial name or default, or are dropped. The phone assistant intent path waits for cold start too.
+- **HLS/DASH/AAC/OGG/Opus radios.** MIME was hardcoded to `audio/mpeg`; playlists didn't play on phone or Cast. MIME is now derived from the stream URL.
+- **Now-playing cover** on phone, car and notification: the embedded icon no longer overrides the live cover; without cover the icon is kept.
+- **Media notification** now opens the app when tapped (`setSessionActivity`).
+- **Cast:** no autoplay when resuming with an active session; stopping the cast keeps the station that was playing on the TV; an active session is detected when the service is recreated.
+- **Corrupt radios file** self-recovers; entries without id or URL are discarded.
+- **UI/performance:** animations no longer recompose per frame; covers decode to display size (≤512 px) with a byte-sized cache (OOM-safe); edge-to-edge list padding; keyboard no longer covers forms; no empty-state flash before loading.
+- **Accessibility:** single-focus language selector with proper role; play button role; visible "unencrypted connection" warning for `http://` URLs; host validation; URL shown without credentials on the card.
+- **Dependency security:** DataStore 1.1.1 → 1.1.7 (CVE-2024-7254) and Media3 1.11.0 → 1.11.1.
+
+#### Internal
+- Tests: 61 → **101** (service-level regressions: `onConnect` commands, cold-start browse tree, MA-1, media id resolution; repository with real DataStore and corruption; search; per-extension MIME; Cast cover budget).
+- Embedded artwork 256 px; `MediaLibraryService` action in the manifest; `adjustResize`; no navigation-bar contrast scrim on OLED; per-connection diagnostic log (`pkg`, `trusted`, `auto`).
+
 ## [0.3.0] — 2026-09-22
 
 ### Agregado

@@ -5,6 +5,7 @@
     <string name="ahora_suena">Ahora suena</string>
     <string name="conectando">Conectando…</string>
     <string name="reproduciendo">Reproduciendo</string>
+    <string name="reproduciendo_track">Reproduciendo · %1$s</string>
     <string name="pausado">En pausa</string>
     <string name="reconectando">Reconectando…</string>
 
@@ -23,6 +24,7 @@
     <string name="nombre_ayuda">Un nombre corto para reconocerla en la lista</string>
     <string name="url_stream">URL del stream</string>
     <string name="url_ayuda">La dirección del stream, por ejemplo https://radio.example.com/stream.mp3</string>
+    <string name="conexion_sin_cifrado">Conexión sin cifrado: la red podría ver tu tráfico</string>
     <string name="contrasena_opcional">Contraseña (opcional)</string>
     <string name="contrasena_ayuda">Solo si tu estación SUB/WAVE pide contraseña de oyente</string>
     <string name="guardar">Guardar</string>
@@ -45,6 +47,7 @@
     <string name="pedidos_cabina">Pedidos a la cabina</string>
 
     <string name="play">Reproducir</string>
+    <string name="reproducir_radio">Reproducir: %1$s</string>
     <string name="pause">Pausar</string>
     <string name="ampliar_reproductor">Ampliar reproductor</string>
     <string name="sincronizar">Sincronizar</string>
@@ -54,7 +57,9 @@
     <string name="error_red">No se pudo conectar al stream.</string>
     <string name="error_stream">No se pudo reproducir el stream.</string>
     <string name="error_url">La URL debe empezar con http:// o https://</string>
+    <string name="error_url_host">La URL no apunta a ningún servidor. Revisá el dominio o la IP.</string>
     <string name="cast_activo">Casteando a un dispositivo</string>
+    <string name="cast_activo_detalle">%1$s — %2$s</string>
     <string name="control_remoto">Control remoto</string>
 
     <string name="sintoniza_para_ver">Sintonizá una radio para ver qué está sonando</string>
@@ -68,6 +73,7 @@
     <string name="espanol">Español</string>
     <string name="ingles">English</string>
     <string name="en_el_aire">En el aire</string>
+    <string name="en_el_aire_dj">%1$s — %2$s</string>
     <string name="a_continuacion">A continuación: %1$s</string>
     <plurals name="listeners_count">
         <item quantity="one">%1$d oyente</item>
@@ -80,6 +86,7 @@
     <string name="pedido_ayuda">Escribí qué querés escuchar. El DJ lo busca en su biblioteca y lo pone en la fila si lo encuentra.</string>
     <string name="pedido_texto">Tu pedido</string>
     <string name="pedido_texto_ejemplo">Un tema de Radiohead o algo más movido…</string>
+    <string name="pedido_contador">%1$d/%2$d</string>
     <string name="pedido_nombre">Tu nombre (opcional)</string>
     <string name="pedido_enviar">Enviar pedido</string>
     <string name="pedido_enviando">Enviando…</string>

@@ -99,12 +99,15 @@ class CastBridge(
     fun register() {
         localPlayer = session.player
         sessionManager?.addSessionManagerListener(listener, CastSession::class.java)
+        // Servicio (re)creado con una sesión de Cast ya viva: sin cambiar al
+        // CastPlayer sonarían el local y el TV a la vez.
+        if (sessionManager?.currentCastSession?.isConnected == true) startCast()
     }
 
     fun release() {
         sessionManager?.removeSessionManagerListener(listener, CastSession::class.java)
         onCastStateChanged = null
-        stopCast()
+        stopCast(restoreLocalPlayback = false)
     }
 
     /**
@@ -151,25 +154,30 @@ class CastBridge(
             player.prepare()
         }
         player.addListener(castPlayerListener)
-        player.play()
+        // Conectar Cast con el local en pausa deja el receiver en pausa con el ítem.
+        if (wasPlayingBeforeCast) player.play()
         castPlayer = player
         session.setPlayer(player)
         onCastStateChanged?.invoke()
     }
 
-    private fun stopCast() {
+    private fun stopCast(restoreLocalPlayback: Boolean = true) {
         val player = castPlayer ?: return
         castPlayer = null
+        val castItem = player.currentMediaItem
+        val wasPlaying = player.isPlaying
         val local = localPlayer
         if (local != null) {
+            // La radio elegida mientras se casteaba sigue sonando en el teléfono.
+            if (castItem != null) {
+                local.setMediaItem(castItem)
+                local.prepare()
+            }
             session.setPlayer(local)
         }
         player.removeListener(castPlayerListener)
         player.release()
-        if (local != null && wasPlayingBeforeCast) {
-            local.prepare()
-            local.play()
-        }
+        if (local != null && restoreLocalPlayback && wasPlaying) local.play()
         onCastStateChanged?.invoke()
     }
 }

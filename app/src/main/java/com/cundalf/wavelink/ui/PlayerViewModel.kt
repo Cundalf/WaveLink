@@ -25,6 +25,7 @@ import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 
@@ -53,6 +54,17 @@ class PlayerViewModel(application: Application) : AndroidViewModel(application) 
     private val playback = PlaybackClient(application)
 
     val state: StateFlow<RadioState> = repository.state
+
+    /**
+     * `false` hasta la primera lectura de DataStore: evita mostrar el estado
+     * "todavía no tenés radios" durante el arranque.
+     */
+    val radiosLoaded: StateFlow<Boolean> =
+        flow {
+            repository.awaitLoaded(REPOSITORY_LOAD_TIMEOUT_MS)
+            emit(true)
+        }.stateIn(viewModelScope, SharingStarted.Eagerly, repository.isLoaded)
+
     val controller = playback.controller
     val playerState: StateFlow<PlaybackUiState> = playback.playerState
     val errorMessage: StateFlow<PlaybackError?> = PlaybackEvents.error
@@ -216,6 +228,7 @@ class PlayerViewModel(application: Application) : AndroidViewModel(application) 
     }
 
     private companion object {
+        const val REPOSITORY_LOAD_TIMEOUT_MS = 5_000L
         const val REQUEST_POLL_INTERVAL_MS = 2_500L
         const val REQUEST_POLL_TIMEOUT_MS = 60_000L
     }

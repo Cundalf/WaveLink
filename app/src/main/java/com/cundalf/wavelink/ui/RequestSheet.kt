@@ -6,8 +6,6 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.imePadding
-import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
@@ -32,7 +30,7 @@ import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -71,9 +69,7 @@ internal fun RequestSheetContent(
                 .fillMaxWidth()
                 .verticalScroll(rememberScrollState())
                 .padding(horizontal = 24.dp)
-                .padding(bottom = 24.dp)
-                .imePadding()
-                .navigationBarsPadding(),
+                .padding(bottom = 24.dp),
         verticalArrangement = Arrangement.spacedBy(12.dp),
     ) {
         Text(
@@ -155,8 +151,8 @@ private fun RequestForm(
     sending: Boolean,
     onSend: (text: String, name: String) -> Unit,
 ) {
-    var text by remember { mutableStateOf("") }
-    var name by remember { mutableStateOf("") }
+    var text by rememberSaveable { mutableStateOf("") }
+    var name by rememberSaveable { mutableStateOf("") }
     val canSend = !sending && text.isNotBlank()
 
     Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
@@ -170,7 +166,7 @@ private fun RequestForm(
             onValueChange = { text = it.take(REQUEST_TEXT_MAX) },
             label = { Text(stringResource(R.string.pedido_texto)) },
             placeholder = { Text(stringResource(R.string.pedido_texto_ejemplo)) },
-            supportingText = { Text("${text.length}/$REQUEST_TEXT_MAX") },
+            supportingText = { Text(stringResource(R.string.pedido_contador, text.length, REQUEST_TEXT_MAX)) },
             keyboardOptions =
                 KeyboardOptions(
                     capitalization = KeyboardCapitalization.Sentences,

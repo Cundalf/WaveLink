@@ -25,6 +25,8 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.TransformOrigin
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.viewinterop.AndroidView
@@ -39,20 +41,6 @@ internal val ReconnectColor = Color(0xFFFFC857)
 
 @Composable
 internal fun EqualizerBars(animating: Boolean) {
-    val transition = rememberInfiniteTransition(label = "equalizer")
-    val barFractions =
-        List(EQ_BAR_COUNT) { index ->
-            transition.animateFloat(
-                initialValue = EQ_BAR_MIN_FRACTION,
-                targetValue = EQ_BAR_MAX_FRACTION,
-                animationSpec =
-                    infiniteRepeatable(
-                        animation = tween(durationMillis = EQ_DURATION_MS, delayMillis = index * EQ_DELAY_STEP_MS),
-                        repeatMode = RepeatMode.Reverse,
-                    ),
-                label = "equalizer_bar_$index",
-            )
-        }
     Row(
         modifier =
             Modifier
@@ -60,18 +48,50 @@ internal fun EqualizerBars(animating: Boolean) {
         horizontalArrangement = Arrangement.spacedBy(3.dp),
         verticalAlignment = Alignment.Bottom,
     ) {
-        barFractions.forEach { fraction ->
-            val height = if (animating) EQ_BAR_MAX_HEIGHT_DP * fraction.value else EQ_BAR_IDLE_HEIGHT_DP
-            Box(
-                modifier =
-                    Modifier
-                        .width(4.dp)
-                        .height(height)
-                        .clip(RoundedCornerShape(2.dp))
-                        .background(MaterialTheme.colorScheme.primary),
-            )
+        if (animating) {
+            val transition = rememberInfiniteTransition(label = "equalizer")
+            val barFractions =
+                List(EQ_BAR_COUNT) { index ->
+                    transition.animateFloat(
+                        initialValue = EQ_BAR_MIN_FRACTION,
+                        targetValue = EQ_BAR_MAX_FRACTION,
+                        animationSpec =
+                            infiniteRepeatable(
+                                animation =
+                                    tween(
+                                        durationMillis = EQ_DURATION_MS,
+                                        delayMillis = index * EQ_DELAY_STEP_MS,
+                                    ),
+                                repeatMode = RepeatMode.Reverse,
+                            ),
+                        label = "equalizer_bar_$index",
+                    )
+                }
+            barFractions.forEach { fraction ->
+                EqualizerBar(scaleYProvider = { fraction.value })
+            }
+        } else {
+            repeat(EQ_BAR_COUNT) {
+                EqualizerBar(scaleYProvider = { EQ_BAR_IDLE_SCALE })
+            }
         }
     }
+}
+
+@Composable
+private fun EqualizerBar(scaleYProvider: () -> Float) {
+    Box(
+        modifier =
+            Modifier
+                .width(4.dp)
+                .height(EQ_BAR_MAX_HEIGHT_DP)
+                .graphicsLayer {
+                    transformOrigin = EQ_BAR_TRANSFORM_ORIGIN
+                    scaleY = scaleYProvider()
+                }
+                .clip(RoundedCornerShape(2.dp))
+                .background(MaterialTheme.colorScheme.primary),
+    )
 }
 
 @Composable
@@ -79,24 +99,37 @@ internal fun PulsingDot(
     color: Color,
     pulsing: Boolean,
 ) {
-    val transition = rememberInfiniteTransition(label = "status_dot")
-    val alpha by
-        transition.animateFloat(
-            initialValue = DOT_MIN_ALPHA,
-            targetValue = DOT_MAX_ALPHA,
-            animationSpec =
-                infiniteRepeatable(
-                    animation = tween(durationMillis = PULSE_DURATION_MS),
-                    repeatMode = RepeatMode.Reverse,
-                ),
-            label = "status_dot_alpha",
-        )
+    if (pulsing) {
+        val transition = rememberInfiniteTransition(label = "status_dot")
+        val alpha =
+            transition.animateFloat(
+                initialValue = DOT_MIN_ALPHA,
+                targetValue = DOT_MAX_ALPHA,
+                animationSpec =
+                    infiniteRepeatable(
+                        animation = tween(durationMillis = PULSE_DURATION_MS),
+                        repeatMode = RepeatMode.Reverse,
+                    ),
+                label = "status_dot_alpha",
+            )
+        PulsingDotBox(color = color, alphaProvider = { alpha.value })
+    } else {
+        PulsingDotBox(color = color, alphaProvider = { DOT_MAX_ALPHA })
+    }
+}
+
+@Composable
+private fun PulsingDotBox(
+    color: Color,
+    alphaProvider: () -> Float,
+) {
     Box(
         modifier =
             Modifier
                 .size(10.dp)
                 .clip(CircleShape)
-                .background(color.copy(alpha = if (pulsing) alpha else DOT_MAX_ALPHA)),
+                .graphicsLayer { alpha = alphaProvider() }
+                .background(color),
     )
 }
 
@@ -138,7 +171,8 @@ private const val EQ_DELAY_STEP_MS = 120
 private const val EQ_BAR_MIN_FRACTION = 0.3f
 private const val EQ_BAR_MAX_FRACTION = 1f
 private val EQ_BAR_MAX_HEIGHT_DP = 16.dp
-private val EQ_BAR_IDLE_HEIGHT_DP = 6.dp
+private const val EQ_BAR_IDLE_SCALE = 0.375f
+private val EQ_BAR_TRANSFORM_ORIGIN = TransformOrigin(0.5f, 1f)
 private const val PULSE_DURATION_MS = 900
 private const val DOT_MIN_ALPHA = 0.35f
 private const val DOT_MAX_ALPHA = 1f
