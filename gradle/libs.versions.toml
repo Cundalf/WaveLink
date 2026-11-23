@@ -12,7 +12,7 @@ datastore = "1.2.1"
 castFramework = "22.3.1"
 mediarouter = "1.8.1"
 junit = "4.13.2"
-robolectric = "4.17"
+robolectric = "4.18.1"
 
 # Herramientas de calidad / análisis estático
 detekt = "1.23.8"
